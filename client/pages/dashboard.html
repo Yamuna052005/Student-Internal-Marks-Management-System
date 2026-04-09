@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — SIMMS</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <meta name="color-scheme" content="dark" />
+</head>
+
+<body>
+  <div class="app-shell" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a class="sidebar-brand" href="/pages/dashboard.html">
+        <div class="sidebar-mark">S</div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">SIMMS</span>
+          <span class="sidebar-brand-sub">Marks Intelligence</span>
+        </div>
+      </a>
+      <div class="nav-section-label">Workspace</div>
+      <nav class="nav">
+        <a class="nav-link active" href="/pages/dashboard.html" data-nav="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" href="/pages/marks.html" data-nav="marks">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Marks</span>
+        </a>
+        <a class="nav-link" href="/pages/analytics.html" data-nav="analytics" data-role="admin,faculty">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Analytics</span>
+        </a>
+        <a class="nav-link" href="/pages/students.html" data-nav="students" data-role="admin,faculty">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Students</span>
+        </a>
+        <a class="nav-link" href="/pages/remedials.html" data-nav="remedials" data-role="admin,faculty">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span>Remedials</span>
+        </a>
+        <a class="nav-link" href="/pages/settings.html" data-nav="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <strong data-who>—</strong>
+          <div class="hint">Academic Session</div>
+        </div>
+        <button type="button" class="btn ghost btn-block" data-logout>Log Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="app-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn btn-icon ghost" data-mobile-sidebar-toggle aria-label="Open menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div style="font-weight:600;font-family:'Poppins';color:var(--text-muted);">Overview</div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn small ghost" data-theme-toggle>Theme</button>
+        </div>
+      </header>
+
+      <main class="main ui-reveal">
+
+        <!-- ── Hero ── -->
+        <section style="margin-bottom:3rem">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem">
+            <div>
+              <p style="color:var(--primary);font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem">System Pulse</p>
+              <h1 id="heroGreeting" style="font-size:2.5rem;letter-spacing:-0.02em">Dashboard</h1>
+              <p style="color:var(--text-muted)">Performance snapshot and academic standing.</p>
+            </div>
+            <div class="trend-chip good" id="heroStatus" style="padding:0.5rem 1rem;font-size:0.9rem">Operational</div>
+          </div>
+
+          <!-- KPI cards — labels filled by JS per role -->
+          <div class="grid cols-4">
+
+            <div class="stat-card" id="kpiStudentsCard">
+              <div class="card-inner">
+                <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <div class="kpi-body">
+                  <span class="kpi-label" id="kpiStudentsLabel">Students</span>
+                  <div class="kpi-value-row">
+                    <h2 id="kpiStudents">—</h2>
+                    <div class="trend-chip" id="kpiStudentsTrend">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card" id="kpiRecordsCard">
+              <div class="card-inner">
+                <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                <div class="kpi-body">
+                  <span class="kpi-label" id="kpiRecordsLabel">Records</span>
+                  <div class="kpi-value-row">
+                    <h2 id="kpiRecords">—</h2>
+                    <div class="trend-chip" id="kpiRecordsTrend">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card" id="kpiRiskCard">
+              <div class="card-inner">
+                <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                <div class="kpi-body">
+                  <span class="kpi-label" id="kpiRiskLabel">At Risk</span>
+                  <div class="kpi-value-row">
+                    <h2 id="kpiRisk">—</h2>
+                    <div class="trend-chip" id="kpiRiskTrend">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card" id="kpiAnomCard">
+              <div class="card-inner">
+                <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+                <div class="kpi-body">
+                  <span class="kpi-label" id="kpiAnomLabel">Anomalies</span>
+                  <div class="kpi-value-row">
+                    <h2 id="kpiAnom">—</h2>
+                    <div class="trend-chip" id="kpiAnomTrend">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── STUDENT-ONLY section ── -->
+        <section id="studentSection" style="margin-bottom:2rem">
+          <div class="card" style="margin-bottom:1.25rem">
+            <h2 style="font-size:1.15rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.6rem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              Year → Semester → Subjects → Marks
+            </h2>
+            <p class="hint" style="margin-bottom:1rem">Flow: Year → Semester → Subjects → Marks (from term codes such as 2025-T1). Each subject lists components, internals (I1/I2), and final; internals sum under 16 is flagged At Risk.</p>
+            <div id="academicReportTree" class="academic-tree"></div>
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+              <a href="/pages/marks.html" class="btn ghost" style="font-size:0.85rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Open marks table
+              </a>
+            </div>
+          </div>
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.5rem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Remedial
+            </h2>
+            <p class="hint" style="margin-bottom:1rem">Subjects where your <strong>final mark</strong> or <strong>combined internals (I1 + I2)</strong> are below 16, plus any remedial sessions recorded for you.</p>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Final mark under 16</h3>
+            <div id="studentLowFinalList" class="list-stack" style="margin-bottom:1.25rem"></div>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Combined internals under 16 (I1 + I2)</h3>
+            <div id="studentInternalRiskList" class="list-stack" style="margin-bottom:1.25rem"></div>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Your remedial sessions</h3>
+            <div id="studentRemedialList" class="list-stack"></div>
+          </div>
+        </section>
+
+        <!-- ── STAFF-ONLY sections ── -->
+        <section id="staffHighlights" class="grid cols-2" style="margin-bottom:2rem">
+          <div class="card" style="display:flex;flex-direction:column">
+            <h2 style="font-size:1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              Top Performers
+            </h2>
+            <p class="hint" style="margin-bottom:1rem">Ranked by final among marks at or above the pass mark (from Settings).</p>
+            <div class="list-stack" id="topList"></div>
+          </div>
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Needs Attention
+            </h2>
+            <div class="list-stack" id="lowList"></div>
+          </div>
+        </section>
+
+        <section class="grid cols-1" id="predictiveSection" style="margin-bottom:2rem">
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.35rem">Predictive risk (multi-subject)</h2>
+            <p class="hint" style="margin-bottom:1.25rem">Combines course averages, breadth of weak subjects, and recorded declines vs prior finals.</p>
+            <div class="list-stack" id="predictiveList"></div>
+          </div>
+        </section>
+
+        <!-- Activity feed: admin only (removed for faculty/student in dashboard.js) -->
+        <section id="activitySection" style="margin-bottom:2rem">
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:1.5rem">Recent Activity Feed</h2>
+            <div class="list-stack" id="actList"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="/js/dashboard.js"></script>
+</body>
+
+</html>

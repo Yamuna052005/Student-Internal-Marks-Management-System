@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIMMS — Intelligent Marks Management</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <meta name="color-scheme" content="dark light" />
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="landing-nav ui-reveal">
+    <div class="landing-nav-logo">
+      <div style="font-weight: 800; font-family: 'Poppins'; font-size: 1.5rem; letter-spacing: -0.05em; color: white;">SIMMS</div>
+    </div>
+    <div class="landing-nav-links">
+      <a href="#features" class="nav-link-item">Features</a>
+      <a href="#workflow" class="nav-link-item">How it works</a>
+      <a href="#stats" class="nav-link-item">Impact</a>
+      <button type="button" class="btn secondary" data-theme-toggle style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Theme</button>
+      <button type="button" class="btn secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;" onclick="location.hash='#hero'">Sign In</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="landing-hero-wrap" id="hero">
+    <div class="section-container">
+      <div class="landing-hero-inner">
+        <div class="landing-hero-content ui-reveal">
+          <h1>Effortless Marks <br/>Intelligence.</h1>
+          <p>The OS for academic performance. Automate weighting, surface risk signals, and streamline intervention workflows for the modern institution.</p>
+          <div class="landing-hero-actions">
+            <button type="button" class="btn primary" onclick="location.hash='#workflow'">Explore Product</button>
+            <button type="button" class="btn secondary" onclick="document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth' })">View Demo</button>
+          </div>
+        </div>
+        <div class="landing-hero-preview ui-reveal" style="transition-delay: 0.2s;">
+          <div class="dash-glow"></div>
+          <div class="dashboard-mockup">
+            <div class="dash-header">
+              <div class="dash-dot r"></div>
+              <div class="dash-dot y"></div>
+              <div class="dash-dot g"></div>
+            </div>
+            
+            <!-- Login Form Integrated into UI Mockup -->
+            <div style="margin-top: 1rem;">
+               <h3 style="margin-bottom: 2rem; font-size: 1.5rem; text-align: center;">Welcome back</h3>
+               <form id="loginForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                 <div>
+                   <label style="display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--text-dim); font-weight: 700;">Institutional Identity</label>
+                   <input class="input" type="text" id="username" placeholder="Enter username" required />
+                 </div>
+                 <div>
+                   <label style="display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--text-dim); font-weight: 700;">Security Key</label>
+                   <input class="input" type="password" id="password" placeholder="••••••••" required />
+                 </div>
+                 <button type="submit" class="btn primary" style="width: 100%; margin-top: 1rem;">Enter Workspace</button>
+                 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">Forgot credentials? <a href="#" style="color: var(--primary);">Contact Admin</a></p>
+               </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section class="section" id="features">
+    <div class="section-container">
+      <div class="section-head ui-reveal">
+        <h2>Powering Institutional Excellence</h2>
+        <p>A unified suite of tools designed to remove the friction from marks management and faculty workflows.</p>
+      </div>
+
+      <div class="features-grid">
+        <article class="feature-card ui-reveal">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+          </div>
+          <h3>Smart Weighting</h3>
+          <p>Dynamic 80/20 calculation across multiple assessments with zero configuration required.</p>
+        </article>
+        <article class="feature-card ui-reveal" style="transition-delay: 0.1s;">
+          <div class="feature-icon" style="color: var(--accent); background: rgba(168,85,247,0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Instant Intervention</h3>
+          <p>Spot students at risk automatically and initiate remedial workflows with one click.</p>
+        </article>
+        <article class="feature-card ui-reveal" style="transition-delay: 0.2s;">
+          <div class="feature-icon" style="color: var(--success); background: rgba(16,185,129,0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          </div>
+          <h3>CSV Sync</h3>
+          <p>Bulk import and export marks data with precision handling for large datasets.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="section" id="workflow" style="background: rgba(255,255,255,0.01);">
+    <div class="section-container">
+      <div class="section-head ui-reveal">
+        <h2>From Setup to Insight</h2>
+        <p>Three steps to a more intelligent academic ecosystem.</p>
+      </div>
+
+      <div class="how-it-works">
+         <div class="ui-reveal" style="flex: 1; text-align: center;">
+            <div class="step-item">01</div>
+            <h3>Enroll</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Sync your institutional roster and define grading periods.</p>
+         </div>
+         <div class="ui-reveal" style="flex: 1; text-align: center; transition-delay: 0.1s;">
+            <div class="step-item">02</div>
+            <h3>Input</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Faculty enter marks via the refined grid or bulk CSV upload.</p>
+         </div>
+         <div class="ui-reveal" style="flex: 1; text-align: center; transition-delay: 0.2s;">
+            <div class="step-item">03</div>
+            <h3>Interact</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Generate risk reports, distribution charts, and intervention plans.</p>
+         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="section" id="stats">
+    <div class="section-container">
+      <div class="stats-row ui-reveal">
+        <div class="stat-item" data-target="2500">
+          <h3 class="count-up">0</h3>
+          <p>Total Students</p>
+        </div>
+        <div class="stat-item" data-target="99">
+          <h3 class="count-up">0<span>%</span></h3>
+          <p>Record Precision</p>
+        </div>
+        <div class="stat-item" data-target="15">
+          <h3 class="count-up">0</h3>
+          <p>Institutes Onboarded</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="section" style="background: rgba(255,255,255,0.01);">
+    <div class="section-container">
+      <div class="section-head ui-reveal">
+        <h2>Institutional Feedback</h2>
+      </div>
+      <div class="features-grid">
+         <div class="card ui-reveal" style="padding: 2rem;">
+            <p style="font-style: italic; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">"SIMMS has cut our end-of-semester processing time by nearly 40%. The risk signals are a game-changer for our remedial programs."</p>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+               <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
+               <div>
+                  <div style="font-weight: 600;">Dr. Sarah Chen</div>
+                  <div class="hint">Dean of Academics</div>
+               </div>
+            </div>
+         </div>
+         <div class="card ui-reveal" style="padding: 2rem; transition-delay: 0.1s;">
+            <p style="font-style: italic; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">"The faculty love the CSV import. It's the most frictionless marks system we've ever deployed."</p>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+               <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
+               <div>
+                  <div style="font-weight: 600;">Marcus Thorne</div>
+                  <div class="hint">IT Academic Lead</div>
+               </div>
+            </div>
+         </div>
+         <div class="card ui-reveal" style="padding: 2rem; transition-delay: 0.2s;">
+            <p style="font-style: italic; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">"Professional, fast, and secure. Everything a modern institution needs to maintain grading integrity."</p>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+               <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
+               <div>
+                  <div style="font-weight: 600;">Ellen Zhang</div>
+                  <div class="hint">Registrar</div>
+               </div>
+            </div>
+         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="section">
+    <div class="section-container" style="text-align: center;">
+      <div class="ui-reveal">
+         <h2 style="font-size: 3.5rem; margin-bottom: 1.5rem;">Ready to automate?</h2>
+         <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto;">Join 15+ institutions streamlining their marks workflows today.</p>
+         <button type="button" class="btn primary" onclick="location.hash='#hero'">Start Free Trial</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="padding: 5rem 0; border-top: 1px solid var(--border);">
+    <div class="section-container">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; color: var(--text-muted); font-size: 0.9rem;">
+        <div>
+          <div style="font-weight: 800; color: white; font-size: 1.25rem; margin-bottom: 1rem;">SIMMS</div>
+          <p>© 2026 Intelligent Academic Systems.</p>
+        </div>
+        <div style="display: flex; gap: 4rem;">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <b style="color: white; margin-bottom: 0.5rem;">Product</b>
+            <a href="#">Features</a>
+            <a href="#">Security</a>
+            <a href="#">Roadmap</a>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <b style="color: white; margin-bottom: 0.5rem;">Company</b>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+            <a href="#">Support</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/js/login.js"></script>
+</body>
+
+</html>
