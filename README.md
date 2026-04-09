@@ -68,7 +68,7 @@ client/
 ## 🧮 Marks Calculation Logic
 
 * Internal 1 = Mid-1 + Assignment
-* Internal 2 = Mid-2 + Lab
+* Internal 2 = Mid-2 + Assignment
 
 Final score:
 
