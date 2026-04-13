@@ -146,36 +146,44 @@ function initMobileDrawer(shell) {
   });
 }
 
-export function initShell({ active }) {
-  const u = getUser();
+export async function initShell({ active }) {
+  let u = getUser();
+
+  // 🔥 FIX: ensure user always loaded
+  if (!u) {
+    try {
+      const { refreshMe } = await import("./auth.js");
+      u = await refreshMe();
+    } catch (e) {
+      window.location.href = "/index.html";
+      return;
+    }
+  }
+
+  if (!u) {
+    window.location.href = "/index.html";
+    return;
+  }
+
+  // user info
   qsa("[data-who]").forEach((el) => {
-    el.textContent = u ? `${u.name} • ${u.role}` : "—";
+    el.textContent = `${u.name} • ${u.role}`;
   });
+
+  // active nav
   qsa("[data-nav]").forEach((a) => {
     a.classList.toggle("active", a.getAttribute("data-nav") === active);
   });
+
+  // 🔥 FIX: strict role check
   qsa("[data-role]").forEach((el) => {
-    const allow = (el.getAttribute("data-role") || "").split(",").map((s) => s.trim());
-    el.style.display = !u || allow.includes(u.role) ? "" : "none";
+    const allow = (el.getAttribute("data-role") || "")
+      .split(",")
+      .map((s) => s.trim());
+
+    el.style.display = allow.includes(u.role) ? "" : "none";
   });
-
-  qs("[data-logout]")?.addEventListener("click", () => {
-    import("./auth.js").then((m) => m.logout());
-  });
-
-  const shell = qs(".app-shell");
-  qs("[data-sidebar-toggle]")?.addEventListener("click", () => {
-    shell?.classList.toggle("sidebar-collapsed");
-    localStorage.setItem("simms_sb", shell?.classList.contains("sidebar-collapsed") ? "1" : "0");
-  });
-  initMobileDrawer(shell);
-  if (localStorage.getItem("simms_sb") === "1") shell?.classList.add("sidebar-collapsed");
-
-  qsa("[data-theme-toggle]").forEach((btn) => initThemeToggle(btn));
-
-  initGlobalUI();
 }
-
 // --- High-End UI Logic ---
 
 export function initGlobalUI() {

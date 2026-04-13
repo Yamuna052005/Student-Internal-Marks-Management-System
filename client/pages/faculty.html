@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Faculty — SIMMS</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <meta name="color-scheme" content="dark" />
+</head>
+
+<body>
+    <div class="app-shell" id="app">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <a class="sidebar-brand" href="/pages/dashboard.html">
+                <div class="sidebar-mark">S</div>
+                <div class="sidebar-brand-text">
+                    <span class="sidebar-brand-name">SIMMS</span>
+                    <span class="sidebar-brand-sub">Marks Intelligence</span>
+                </div>
+            </a>
+
+            <div class="nav-section-label">Workspace</div>
+
+            <nav class="nav">
+                <a class="nav-link" href="/pages/dashboard.html">Dashboard</a>
+                <a class="nav-link" href="/pages/marks.html">Marks</a>
+                <a class="nav-link" href="/pages/analytics.html">Analytics</a>
+                <a class="nav-link" href="/pages/students.html">Students</a>
+
+                <!-- ✅ NEW FACULTY LINK -->
+                <a class="nav-link active" href="/pages/faculty.html">
+                    <span>Faculty</span>
+                </a>
+
+                <a class="nav-link" href="/pages/remedials.html">Remedials</a>
+                <a class="nav-link" href="/pages/settings.html">Settings</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-chip">
+                    <strong data-who>—</strong>
+                    <div class="hint">Professional Session</div>
+                </div>
+                <button type="button" class="btn ghost btn-block" data-logout>Log Out</button>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <div class="app-content">
+
+            <header class="topbar">
+                <div class="topbar-left">
+                    <div style="font-weight: 600;">Faculty Management</div>
+                </div>
+            </header>
+
+            <main class="main">
+
+                <header style="display:flex; justify-content:space-between; margin-bottom:2rem;">
+                    <div>
+                        <h1>Faculty</h1>
+                        <p style="color:gray;">Manage faculty accounts</p>
+                    </div>
+
+                    <!-- ADD FACULTY -->
+                    <button class="btn primary" id="btnNew">
+                        Add Faculty
+                    </button>
+                </header>
+
+                <!-- TABLE -->
+                <div class="card">
+                    <div style="padding:1rem;">
+                        <input class="input" id="search" placeholder="Search faculty..." />
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-backdrop" id="modalFc">
+        <div class="modal">
+
+            <div class="modal-h">
+                <h2>Add Faculty</h2>
+                <button class="btn ghost" data-close>&times;</button>
+            </div>
+
+            <div class="modal-b">
+
+                <div class="field">
+                    <label>Name</label>
+                    <input class="input" id="fcName" />
+                </div>
+
+                <div class="field">
+                    <label>Username</label>
+                    <input class="input" id="fcUsername" />
+                </div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <input class="input" id="fcPassword" />
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                    <button class="btn primary" id="fcSave">Save</button>
+                    <button class="btn ghost" data-close>Cancel</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/js/faculty.js"></script>
+
+</body>
+
+</html>
