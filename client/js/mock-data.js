@@ -4,7 +4,7 @@
  * 80-20 Weighted Internal Marks Model
  * ─────────────────────────────────────
  * Internal-1 = Mid-1 + Assignment
- * Internal-2 = Mid-2 + Lab
+ * Internal-2 = Mid-2 + Assignment
  *
  * Final = max(I1, I2) × 0.80  +  min(I1, I2) × 0.20
  *
@@ -12,7 +12,7 @@
  * No manual selection needed.
  */
 
-const STORAGE_KEY = "simms_db";
+const STORAGE_KEY = "wsimms_db";
 
 const INITIAL_DATA = {
   users: [
@@ -27,20 +27,20 @@ const INITIAL_DATA = {
   // Finals pre-computed: best(I1,I2)×0.8 + other×0.2, with each internal out of 25.
   marks: [
     // Alice: I1=18+5=23, I2=17+4=21 → 23×0.8+21×0.2 = 22.6
-    { _id: "m1", studentId: "s1", term: "2025-T1", subject: "Mathematics",     mid1: 18, assignment: 5, mid2: 17, lab: 4, internal1: 23, internal2: 21, final: 22.6, bestKey: "internal1", atRisk: false, anomaly: false },
+    { _id: "m1", studentId: "s1", term: "2025-T1", subject: "Mathematics",     mid1: 18, assignment: 5, mid2: 17, assignment: 4, internal1: 23, internal2: 21, final: 22.6, bestKey: "internal1", atRisk: false, anomaly: false },
     // Alice: I1=16+4=20, I2=19+5=24 → 24×0.8+20×0.2 = 23.2
-    { _id: "m2", studentId: "s1", term: "2025-T1", subject: "Data Structures", mid1: 16, assignment: 4, mid2: 19, lab: 5, internal1: 20, internal2: 24, final: 23.2, bestKey: "internal2", atRisk: false, anomaly: false },
+    { _id: "m2", studentId: "s1", term: "2025-T1", subject: "Data Structures", mid1: 16, assignment: 4, mid2: 19, assignment: 5, internal1: 20, internal2: 24, final: 23.2, bestKey: "internal2", atRisk: false, anomaly: false },
     // Bob: I1=7+1=8, I2=10+2=12 → remedial because I1 < 9.
-    { _id: "m3", studentId: "s2", term: "2025-T1", subject: "Physics",         mid1: 7, assignment: 1, mid2: 10, lab: 2, internal1: 8, internal2: 12, final: 11.2, bestKey: "internal2", atRisk: true, anomaly: false },
+    { _id: "m3", studentId: "s2", term: "2025-T1", subject: "Physics",         mid1: 7, assignment: 1, mid2: 10, assignment: 2, internal1: 8, internal2: 12, final: 11.2, bestKey: "internal2", atRisk: true, anomaly: false },
     // Bob: I1=20+5=25, I2=8+0=8 → anomaly because the internal gap is large.
-    { _id: "m4", studentId: "s2", term: "2025-T1", subject: "Mathematics",     mid1: 20, assignment: 5, mid2: 8, lab: 0, internal1: 25, internal2: 8, final: 21.6, bestKey: "internal1", atRisk: true, anomaly: true },
+    { _id: "m4", studentId: "s2", term: "2025-T1", subject: "Mathematics",     mid1: 20, assignment: 5, mid2: 8, assignment: 0, internal1: 25, internal2: 8, final: 21.6, bestKey: "internal1", atRisk: true, anomaly: true },
   ],
   settings: {
     riskThreshold: 16,
     passMark: 16,
     defaultTerm: "2025-T1",
     marksDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    institutionName: "Antigravity University",
+    institutionName: "Sri Padmavati Mahila Women's University",
   },
   activity: [
     { _id: "a1", action: "LOGIN", details: "Admin accessed the system", actorName: "System Admin", createdAt: new Date().toISOString() },
@@ -64,7 +64,7 @@ function mockEnrichMarkForRemedial(markRow) {
   const i2 =
     markRow.internal2 != null && markRow.internal2 !== ""
       ? Number(markRow.internal2)
-      : Number(markRow.mid2 || 0) + Number(markRow.lab || 0);
+      : Number(markRow.mid2 || 0) + Number(markRow.assignment || 0);
   let finalNum = Number(markRow.final);
   if (!Number.isFinite(finalNum)) {
     finalNum = calculateFinal(markRow).final;
@@ -157,14 +157,14 @@ export function saveDb(data) {
  * calculateFinal — 80-20 Weighted Model
  *
  * internal1 = mid1 + assignment   (Internal Assessment 1)
- * internal2 = mid2 + lab          (Internal Assessment 2)
+ * internal2 = mid2 + assignment         (Internal Assessment 2)
  * final     = best × 0.80 + other × 0.20
  *
  * Returns: { internal1, internal2, final, bestKey }
  */
 export function calculateFinal(m) {
   const internal1 = (m.mid1 || 0) + (m.assignment || 0);
-  const internal2 = (m.mid2 || 0) + (m.lab || 0);
+  const internal2 = (m.mid2 || 0) + (m.assignment || 0);
   const best  = Math.max(internal1, internal2);
   const other = Math.min(internal1, internal2);
   const final = Number(((best * 0.8) + (other * 0.2)).toFixed(1));
@@ -196,7 +196,7 @@ function detectFinalSpike(priorFinal, newFinal) {
 /** @param priorFinal - previous stored final (mock PATCH passes this; create/import omit) */
 export function checkAnomaly(m, priorFinal = null) {
   const internal1 = (m.mid1 || 0) + (m.assignment || 0);
-  const internal2 = (m.mid2 || 0) + (m.lab || 0);
+  const internal2 = (m.mid2 || 0) + (m.assignment || 0);
   const final =
     m.final != null && Number.isFinite(Number(m.final))
       ? Number(m.final)
@@ -282,8 +282,8 @@ export function mockAcademicReport(db, studentId) {
   const raw = (db.marks || []).filter((m) => String(m.studentId) === String(studentId));
   const enriched = raw.map((m) => {
     const term = m.term != null && String(m.term).trim() !== "" ? String(m.term).trim() : defaultTerm;
-    const i1 = Number(m.internal1 ?? (m.mid1 || 0) + (m.assignment || 0));
-    const i2 = Number(m.internal2 ?? (m.mid2 || 0) + (m.lab || 0));
+    const i1 = Number(m.internal1 ?? (m.mid1 || 0) + (m.assignment1 || 0));
+    const i2 = Number(m.internal2 ?? (m.mid2 || 0) + (m.assignment2 || 0));
     const internalTotal = Math.round((i1 + i2) * 10) / 10;
     const internalAtRisk =
       (i1 > 0 && i1 < INTERNAL_REMEDIAL_THRESHOLD) || (i2 > 0 && i2 < INTERNAL_REMEDIAL_THRESHOLD);
@@ -293,8 +293,8 @@ export function mockAcademicReport(db, studentId) {
       term,
       mid1: m.mid1,
       mid2: m.mid2,
-      assignment: m.assignment,
-      lab: m.lab,
+      assignment1: m.assignment1,
+      assignment2: m.assignment2,
       internal1: i1,
       internal2: i2,
       internalTotal,

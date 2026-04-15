@@ -80,9 +80,9 @@ function renderAcademicReportTree(el, report) {
                 ? `<span class="badge bad">At Risk</span>`
                 : `<span class="badge good">OK</span>`;
               const mid1 = Number(m.mid1 ?? 0);
-              const as = Number(m.assignment ?? 0);
+              const as1 = Number(m.assignment1 ?? 0);
               const mid2 = Number(m.mid2 ?? 0);
-              const lab = Number(m.lab ?? 0);
+              const as2 = Number(m.assignment2 ?? 0);
               return `<li class="academic-flow-subject">
             <div class="academic-flow-subject-head">
               <span class="academic-flow-eyebrow">Subject</span>
@@ -92,7 +92,7 @@ function renderAcademicReportTree(el, report) {
             <div class="academic-flow-marks-block">
               <span class="academic-flow-eyebrow">Marks</span>
               <div class="academic-flow-marks-grid">
-                <div><span class="hint">Components</span><br/>Mid-1 ${mid1} · Assign ${as} · Mid-2 ${mid2} · Lab ${lab}</div>
+                <div><span class="hint">Components</span><br/>Mid-1 ${mid1} · Assign ${as1} · Mid-2 ${mid2} · Assign ${as2}</div>
                 <div><span class="hint">Internals</span><br/>I1 ${i1} · I2 ${i2} · Sum ${sum}</div>
               </div>
             </div>

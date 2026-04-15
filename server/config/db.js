@@ -8,7 +8,7 @@ dns.setServers(['8.8.8.8', '8.8.4.4']);
 export async function connectDb(uri) {
   mongoose.set("strictQuery", true);
   await mongoose.connect(uri, {
-    dbName: 'simms'
+    dbName: 'wsimms'
   });
   return mongoose.connection;
 }

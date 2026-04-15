@@ -155,7 +155,7 @@ function wire() {
   qs("#btnExport")?.addEventListener("click", async () => {
     try {
       const csv = await apiCsv();
-      downloadBlob("simms_marks.csv", csv, "text/csv");
+      downloadBlob("wsimms_marks.csv", csv, "text/csv");
       toast("good", "Exported", "CSV downloaded.");
     } catch (e) {
       toast("bad", "Export failed", e.message);
@@ -224,17 +224,17 @@ function wire() {
 
 function livePreview() {
   const mid1 = Number(qs("#m1")?.value || 0);
-  const assign = Number(qs("#as")?.value || 0);
+  const assign1 = Number(qs("#as")?.value || 0);
   const mid2 = Number(qs("#m2")?.value || 0);
-  const lab = Number(qs("#lb")?.value || 0);
-  const i1 = mid1 + assign;
-  const i2 = mid2 + lab;
+  const assign2 = Number(qs("#as2")?.value || 0);
+  const i1 = mid1 + assign1;
+  const i2 = mid2 + assign2;
 
   const p1 = qs("#previewI1"), p2 = qs("#previewI2");
   if (p1) p1.textContent = i1;
   if (p2) p2.textContent = i2;
 
-  if (!mid1 && !assign && !mid2 && !lab) {
+  if (!mid1 && !assign1 && !mid2 && !assign2) {
     const pc = qs("#previewCalc"); if (pc) pc.textContent = "Enter scores above to see the automatic calculation.";
     const pf = qs("#previewFinal"); if (pf) pf.textContent = "—";
     const b1 = qs("#previewI1Badge"); if (b1) b1.textContent = "";
@@ -288,9 +288,9 @@ function openEditMarkModal(id, rows) {
   const mTerm = qs("#mTerm");
   if (mTerm) { mTerm.value = displayTerm(m); mTerm.disabled = true; }
   const m1 = qs("#m1"); if (m1) m1.value = m.mid1 || 0;
-  const as = qs("#as"); if (as) as.value = m.assignment || 0;
+  const as1 = qs("#as"); if (as1) as1.value = m.assignment1 || 0;
   const m2 = qs("#m2"); if (m2) m2.value = m.mid2 || 0;
-  const lb = qs("#lb"); if (lb) lb.value = m.lab || 0;
+  const as2 = qs("#as2"); if (as2) as2.value = m.assignment2 || 0;
   livePreview();
   qs("#modalMark").classList.add("open");
   qs("#mSave").dataset.editId = id;
@@ -390,8 +390,8 @@ function renderRows(rows) {
   tb.innerHTML = rows.map((m) => {
     const name = m.student?.name || "—";
     const anom = m.anomaly ? `<span class="badge warn">Anomaly</span>` : "";
-    const i1 = m.internal1 != null ? m.internal1 : (m.mid1 || 0) + (m.assignment || 0);
-    const i2 = m.internal2 != null ? m.internal2 : (m.mid2 || 0) + (m.lab || 0);
+    const i1 = m.internal1 != null ? m.internal1 : (m.mid1 || 0) + (m.assignment1 || 0);
+    const i2 = m.internal2 != null ? m.internal2 : (m.mid2 || 0) + (m.assignment2 || 0);
     const internal1Low = Number(i1) > 0 && Number(i1) < INTERNAL_REMEDIAL_RISK;
     const internal2Low = Number(i2) > 0 && Number(i2) < INTERNAL_REMEDIAL_RISK;
     const finalNum = Number(m.final);
@@ -409,9 +409,9 @@ function renderRows(rows) {
           }`
         : `<span class="badge good">OK</span>`;
     const best1 = m.bestKey === "internal1";
-    const i1Cell = `<span title="Mid-1: ${m.mid1} + Assign: ${m.assignment}"
+    const i1Cell = `<span title="Mid-1: ${m.mid1} + Assign1: ${m.assignment1}"
       style="${best1 ? "font-weight:700;color:var(--success,#22c55e)" : ""}">${i1}${best1 ? " ★" : ""}</span>`;
-    const i2Cell = `<span title="Mid-2: ${m.mid2} + Lab: ${m.lab}"
+    const i2Cell = `<span title="Mid-2: ${m.mid2} + Assign2: ${m.assignment2}"
       style="${!best1 ? "font-weight:700;color:var(--success,#22c55e)" : ""}">${i2}${!best1 ? " ★" : ""}</span>`;
 
     return `<tr class="${m.anomaly ? "row-anomaly" : ""}" data-id="${m._id}">

@@ -46,7 +46,7 @@ export function requireAuth() {
 }
 
 export function requireRoles(...roles) {
-  const u = JSON.parse(localStorage.getItem("simms_user") || "null");
+  const u = JSON.parse(localStorage.getItem("wsimms_user") || "null");
   if (!u || !roles.includes(u.role)) {
     window.location.href = "/pages/dashboard.html";
     return false;

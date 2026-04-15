@@ -271,9 +271,9 @@ function animateCount(wrapper) {
 
 // Global reveal fallback
 const safeInit = () => {
-  if (!window.simms_ui_inited) {
+  if (!window.wsimms_ui_inited) {
     initGlobalUI();
-    window.simms_ui_inited = true;
+    window.wsimms_ui_inited = true;
   }
 };
 

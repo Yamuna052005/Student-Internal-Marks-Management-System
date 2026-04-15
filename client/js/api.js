@@ -36,22 +36,22 @@ async function readErrorBody(res) {
 }
 
 export function getToken() {
-  return localStorage.getItem("simms_token");
+  return localStorage.getItem("wsimms_token");
 }
 
 export function setToken(t) {
-  if (t) localStorage.setItem("simms_token", t);
-  else localStorage.removeItem("simms_token");
+  if (t) localStorage.setItem("wsimms_token", t);
+  else localStorage.removeItem("wsimms_token");
 }
 
 export function getUser() {
-  const raw = localStorage.getItem("simms_user");
+  const raw = localStorage.getItem("wsimms_user");
   return raw ? JSON.parse(raw) : null;
 }
 
 export function setUser(u) {
-  if (u) localStorage.setItem("simms_user", JSON.stringify(u));
-  else localStorage.removeItem("simms_user");
+  if (u) localStorage.setItem("wsimms_user", JSON.stringify(u));
+  else localStorage.removeItem("wsimms_user");
 }
 
 async function mockApi(path, options = {}) {
@@ -776,8 +776,8 @@ export async function uploadCsv(file, { atomic = false } = {}) {
             subject: row.subject,
             mid1: Number(row.mid1 || 0),
             mid2: Number(row.mid2 || 0),
-            assignment: Number(row.assignment || 0),
-            lab: Number(row.lab || 0),
+            assignment1: Number(row.assignment1 || 0),
+            assignment2: Number(row.assignment2 || 0),
           };
           const calc = calculateFinal(payload);
           const termCell = row.term != null && row.term !== "" ? String(row.term).trim() : "";
@@ -845,9 +845,9 @@ export async function apiCsv() {
     ...m,
     student: (db.students || []).find(s => s._id === m.studentId)
   }));
-  const header = "studentName,subject,term,mid1,mid2,assignment,lab,final,atRisk,anomaly";
+  const header = "studentName,subject,term,mid1,mid2,assignment1,assignment2,final,atRisk,anomaly";
   const rows = marks.map(m =>
-    [m.student?.name || "", m.subject, m.term ?? "", m.mid1, m.mid2, m.assignment, m.lab, m.final, m.atRisk, m.anomaly].join(",")
+    [m.student?.name || "", m.subject, m.term ?? "", m.mid1, m.mid2, m.assignment1, m.assignment2, m.final, m.atRisk, m.anomaly].join(",")
   );
   return new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
 }
