@@ -1,84 +1,186 @@
-# Smart Internal Marks Management System (SIMMS) — Full Stack
+# Smart Internal Marks Management System (SIMMS)
 
-Production-style app: **Vanilla JS** frontend, **Express** API, **MongoDB** (Mongoose), **JWT** auth, **bcrypt** passwords, aggregates for analytics, CSV import/export, activity logs, remedial tracking, 80/20 final calculation, risk & anomaly flags, and **admin-configurable marks deadline** (faculty lock after deadline; admin override).
+A full-stack academic management system designed to streamline internal marks handling, enforce submission deadlines, and provide actionable performance insights for students and faculty.
 
-## Prerequisites
+---
 
-- **Node.js 18+**
-- **MongoDB** (local or Atlas)
+## 🚀 Overview
 
-## Setup
+SIMMS is a production-oriented web application that enables institutions to manage internal assessments with strict controls, analytics, and automated workflows.
 
-1. Copy environment file:
+The system enforces **time-bound marks entry**, supports **role-based access control**, and provides **risk-based academic insights** to identify and support underperforming students.
+
+---
+
+## ⚙️ Tech Stack
+
+* **Frontend**: HTML, CSS, JavaScript
+* **Backend**: Node.js, Express
+* **Database**: MongoDB (Mongoose)
+* **Authentication**: JWT
+* **Security**: bcrypt password hashing
+
+---
+
+## 🔑 Key Features
+
+* Role-Based Access Control (**Admin / Faculty / Student**)
+* Time-bound marks entry with automatic locking
+* Admin override for post-deadline modifications
+* 80/20 internal marks calculation logic
+* Student performance analytics dashboard
+* Predictive risk detection across subjects
+* Remedial session tracking and automation
+* CSV import/export for bulk data operations
+* Activity logging for accountability
+
+---
+
+## 🔄 System Workflow
+
+1. Faculty logs in and enters marks within the allowed deadline
+2. System automatically locks marks after the deadline
+3. Admin can override locked entries if required
+4. Analytics module evaluates performance trends
+5. At-risk students are flagged automatically
+6. Remedial sessions are created for intervention
+
+---
+
+## 📁 Project Structure
+
+```
+server/
+  controllers/
+  models/
+  routes/
+  middleware/
+  utils/
+
+client/
+  pages/
+  js/
+  css/
+```
+
+---
+
+## 🧮 Marks Calculation Logic
+
+* Internal 1 = Mid-1 + Assignment
+* Internal 2 = Mid-2 + Assignment
+
+Final score:
+
+```
+final = 0.8 * max(i1, i2) + 0.2 * min(i1, i2)
+```
+
+A student is flagged as **at-risk** if:
+
+* `final < 16`
+* OR combined internal score is critically low
+
+---
+
+## 📊 Predictive Risk System
+
+The system evaluates students using:
+
+* Course average vs threshold
+* Performance consistency across subjects
+* Historical trends (drop detection)
+* Minimum subject score
+
+Outputs:
+
+* Risk Score (0–100)
+* Risk Band (High / Elevated / Watch)
+* Contributing factors
+
+---
+
+## 🔌 API Highlights
+
+* `POST /api/auth/login` — Authentication
+* `GET /api/students` — Student management
+* `POST /api/marks` — Add/update marks
+* `GET /api/analytics/summary` — Performance insights
+* `POST /api/marks/import/csv` — Bulk upload
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Yamuna052005/Student-Internal-Marks-Management-System.git
+cd Student-Internal-Marks-Management-System
+```
+
+### 2. Configure environment
 
 ```bash
 copy .env.example .env
 ```
 
-Edit `.env` and set at least:
+Edit `.env`:
 
-- `MONGODB_URI` — e.g. `mongodb://127.0.0.1:27017/simms`
-- `JWT_SECRET` — long random string
+```
+MONGODB_URI=your_mongodb_url
+JWT_SECRET=your_secret
+PORT=5000
+```
 
-2. Install dependencies:
+### 3. Install dependencies
 
 ```bash
 npm install
 ```
 
-3. Start MongoDB, then run the server (serves API + static client):
+### 4. Run the application
 
 ```bash
 npm run dev
 ```
 
-Open **http://localhost:5000** (or your `PORT`).
+Open:
 
-On first boot, seed creates:
+```
+http://localhost:5000
+```
+
+---
+
+## 👤 Default Credentials
 
 | Role    | Username | Password   |
-|---------|----------|------------|
-| Admin   | `admin`  | `admin123` |
-| Faculty | `faculty`| `faculty123` |
-| Student | `student`| `student123` |
+| ------- | -------- | ---------- |
+| Admin   | admin    | admin123   |
+| Faculty | faculty  | faculty123 |
+| Student | student  | student123 |
 
-> [!IMPORTANT]
-> **Dynamic Student Sync**: Adding a student via the **Enrollment** page automatically creates a corresponding **Institutional User** account.
-> - **Username**: Student's full name, lowercase, no spaces (e.g., `janesmith`).
-> - **Password**: Default is `student123` (can be changed in Settings by Admin).
+---
 
-### Troubleshooting
+## 📥 CSV Import (Strict Mode)
 
-- **`EADDRINUSE` / port 5000**: Another process (often a previous `node` server) is using the port. Stop it (Ctrl+C in the terminal where it runs) or find it in Task Manager / `Get-NetTCPConnection -LocalPort 5000`. Alternatively set `PORT=5001` in `.env` and open that URL.
+Supports bulk marks upload with validation.
 
-## Client (browser)
+* Normal mode → imports valid rows
+* Strict mode → rejects entire file if any row is invalid
 
-- **Live API (default)** — The UI talks to `/api` on the same origin as the static files (single `npm run dev` process). Ensure MongoDB is running and `.env` is valid.
-- **Mock / offline demo** — No database: set `localStorage.setItem('simms_use_mock', '1')` in DevTools, or open any URL with `?mock=1`. Data is simulated in the browser (not the real seed).
-- **Theme** — Use **Light** / **Dark** in the top bar (logged-in pages) or on the login landing nav. Preference is stored as `simms_theme` in `localStorage`.
-- **Mobile** — Below ~1025px width, the sidebar becomes a drawer; open/close with the menu control in the top bar. Tap the dimmed overlay, press **Escape**, or follow a nav link to close.
+---
 
-## Project layout
+## 🔐 Security
 
-```
-server/
-  server.js              # Express app, static /client
-  config/db.js
-  models/                # User, Student, Marks, AppSettings, RemedialSession, ActivityLog
-  controllers/
-  routes/
-  middleware/            # auth, roles, marks deadline guard, errors
-  utils/                 # 80/20 calc, CSV parse, student risk insights, activity helper
-  seed.js
-client/
-  index.html             # Login
-  pages/                 # dashboard, marks, analytics, students, settings
-  css/style.css
-  js/                    # api.js, auth.js, app.js, pages/*.js
-```
+* Password hashing using bcrypt
+* JWT-based authentication
+* Role-based authorization middleware
 
-## API highlights
+---
 
+<<<<<<< HEAD
 - `POST /api/auth/login` — JWT
 - `GET /api/auth/me`
 - `GET|PATCH /api/settings` — deadline, thresholds, **`defaultTerm`** (PATCH **admin**)
@@ -92,54 +194,26 @@ client/
 - `GET|POST /api/remedials` — when marks are saved (or when staff **GET** the list), the server ensures one **`RemedialSession`** per qualifying marks row if none exists: **Internal-1 &lt; 9**, **Internal-2 &lt; 9**, or **final &lt; 16** (aligned with the student dashboard). Trivial all-zero rows are skipped. **`GET /api/remedials`** and **`GET /api/marks`** (faculty/admin) both run the same **sync** so the Intervention Log stays current even if you only use the Marks page. Faculty can add follow-up remedials from the Marks page after an intervention.
 - `GET /api/activity` — faculty/admin; `GET /api/activity/export/csv` — **admin**
 - `GET|POST|PATCH|DELETE /api/users` — **admin**
+=======
+## 🚧 Future Improvements
+>>>>>>> 13630eec70727d8ae57d6c9a8ee781bec5234015
 
-## 80/20 rule (server)
+* Cloud deployment
+* Advanced frontend (React migration)
+* Notification system
+* Report export (PDF)
 
+<<<<<<< HEAD
 - Internal-1 = Mid-1 + Assignment  
 - Internal-2 = Mid-2 + Lab / Assignment-2  
 - `final = 0.8 * max(i1, i2) + 0.2 * min(i1, i2)`  
 - For your college rule, each internal is out of **25**: usually **Mid = 20** and **Assignment / Practical = 5**.  
 - **Marks `atRisk` flag** (marks table, filters, dashboard count): **`final < 16`** or **`internal1 < 9`** or **`internal2 < 9`** when marks are entered. Final below 16 is treated as a fail condition. Settings **`riskThreshold`** (default 40) is **not** used for this flag — it is for **analytics / predictive insights** and pass-style views only. Staff **GET /marks** reconciles stored `atRisk` against this rule.  
 - **Anomaly** if internal gap spike or large jump vs prior final (see `server/utils/calcMarks.js`).
+=======
+---
+>>>>>>> 13630eec70727d8ae57d6c9a8ee781bec5234015
 
-## Academic terms (historical / per-period marks)
+## 📄 License
 
-Each marks document is unique on **`student` + `subject` + `term`** (`term` is a short string you define, e.g. `2025-T1`). That gives **one row per student per subject per period**, so past terms stay queryable without overwriting.
-
-- **Settings → Default academic term**: used when creating marks without a **`term`** body field, as the default for **`GET /api/marks`** / analytics when **`?term`** is omitted (`2025-T1` if unset).
-- **CSV import**: optional **`Term`** column (aliases **`academicterm`**, **`semester`**, **`period`** in the header). If omitted, rows use **`defaultTerm`** from settings.
-- **Exports**: include a **Term** column.
-- **Upgrades**: on server start, existing marks without **`term`** are backfilled from **`defaultTerm`**, then indexes are synced. If **`syncIndexes`** fails (e.g. old Mongo index name), drop the legacy **`student_1_subject_1`** unique index manually and restart.
-
-## Predictive risk (multi-subject)
-
-Single-mark **at-risk** flags use the threshold on one row. **Predictive risk** aggregates all marks per student and surfaces broader signals for faculty/admin dashboards and **`GET /api/analytics/summary`**:
-
-- **Course average** vs the configured risk threshold (including borderline band).
-- **Breadth**: several subjects below threshold, or one weak subject when the student has multiple courses.
-- **History**: where **`priorFinal`** is stored, a recorded **drop** vs the previous final contributes to the score.
-- **Pass mark**: very low minimum subject final across their courses.
-- **Consistency**: unusually large gaps between the two internals in more than one subject.
-
-Each affected student gets a **`riskScore`** (0–100), **`riskBand`** (`high` / `elevated` / `watch`), human-readable **`factors[]`**, plus **`courseAvg`**, **`subjectsTracked`**, and **`minFinal`**. Mock/offline mode mirrors the same logic in `client/js/mock-data.js`. The UI shows this on **Dashboard** (“Predictive risk”) and **Analytics** (“Predictive watchlist”). Students only receive the usual per-mark analytics scope, not the cohort watchlist.
-
-## Strict CSV import (bulk reliability)
-
-By default, CSV import applies **all valid rows** and reports parser/row issues in the response **`errors`** array; some rows may still import if others are invalid.
-
-**Strict mode** avoids **partial** imports when the file itself has bad rows:
-
-- **API**: `POST /api/marks/import/csv?atomic=1` (or add form field **`atomic=1`** with the file upload).
-- **UI**: On **Marks Management**, enable **“Strict CSV: if any row fails validation…”** before choosing a file.
-
-If **any** row fails structural validation (e.g. missing name/subject as enforced by `server/utils/csvParse.js`), the server responds with **400**, **`imported: 0`**, **`atomicAborted: true`**, and **no marks are written**. This satisfies an “all-or-nothing on validation” policy; it does not use MongoDB multi-document transactions (mid-import DB failures remain a separate, rare case).
-
-## Security notes
-
-- Passwords hashed with **bcrypt** (12 rounds).  
-- JWT required for protected routes; role middleware on sensitive handlers.  
-- For production, place the app behind HTTPS, rotate secrets, and tighten CORS.
-
-## License
-
-Use and modify as needed for your environment.
+MIT License
