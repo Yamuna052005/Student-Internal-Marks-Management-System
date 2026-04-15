@@ -285,7 +285,7 @@ async function mockApi(path, options = {}) {
             ...m,
             final: after,
             priorFinal,
-            atRisk: checkRisk(after, settings.riskThreshold || 40, m.internal1, m.internal2),
+            atRisk: checkRisk(after, settings.riskThreshold || 16, m.internal1, m.internal2),
             anomaly: checkAnomaly({ ...m, final: after }, priorFinal),
           };
         }
@@ -378,7 +378,7 @@ async function mockApi(path, options = {}) {
             internal2: calc.internal2,
             final: calc.final,
             bestKey: calc.bestKey,
-            atRisk: checkRisk(calc.final, settings.riskThreshold || 40, calc.internal1, calc.internal2),
+            atRisk: checkRisk(calc.final, settings.riskThreshold || 16, calc.internal1, calc.internal2),
             anomaly: checkAnomaly({ ...body, final: calc.final }, priorFinal),
             updatedAt: now,
           };
@@ -415,7 +415,7 @@ async function mockApi(path, options = {}) {
         internal2: calc.internal2,
         final: calc.final,
         bestKey: calc.bestKey,
-        atRisk: checkRisk(calc.final, settings.riskThreshold || 40, calc.internal1, calc.internal2),
+        atRisk: checkRisk(calc.final, settings.riskThreshold || 16, calc.internal1, calc.internal2),
         anomaly: checkAnomaly(payload),
         createdAt: now,
         updatedAt: now,
@@ -439,7 +439,7 @@ async function mockApi(path, options = {}) {
         updated.internal2 = calc.internal2;
         updated.final     = calc.final;
         updated.bestKey   = calc.bestKey;
-        updated.atRisk    = checkRisk(calc.final, (db.settings || {}).riskThreshold || 40, calc.internal1, calc.internal2);
+        updated.atRisk    = checkRisk(calc.final, (db.settings || {}).riskThreshold || 16, calc.internal1, calc.internal2);
         updated.anomaly   = checkAnomaly(updated, priorFinal);
         patched = updated;
         return updated;
@@ -648,7 +648,7 @@ async function mockApi(path, options = {}) {
     const riskCount = marks.filter(m => m.atRisk).length;
     const anomalyCount = marks.filter(m => m.anomaly).length;
 
-    const passMark = (db.settings || {}).passMark ?? 40;
+    const passMark = (db.settings || {}).passMark ?? 16;
     const sortedPassing = [...marks]
       .filter((m) => Number(m.final) >= passMark)
       .sort((a, b) => b.final - a.final);
@@ -672,15 +672,15 @@ async function mockApi(path, options = {}) {
       avgFinal: Number((data.total / data.count).toFixed(1))
     }));
 
-    const riskTh = (db.settings || {}).riskThreshold ?? 40;
+    const riskTh = (db.settings || {}).riskThreshold ?? 16;
     const studentRiskInsights =
       user?.role === "student"
         ? []
-        : computeStudentRiskInsights(marks, { passMark, riskThreshold: riskTh });
+        : computeStudentRiskInsights(marks, { passMark, predictiveThreshold: 16 });
     const predictedHighRiskCount = studentRiskInsights.filter((r) => r.riskBand === "high").length;
 
     return {
-      settings: { passMark, riskThreshold: riskTh },
+      settings: { passMark, riskThreshold: riskTh, predictiveThreshold: 16 },
       total, riskCount, anomalyCount, top, low, bySubject, passFail, avgScore,
       trend: marks.slice(0, 10),
       atRiskList: marks.filter(m => m.atRisk),
@@ -810,7 +810,7 @@ export async function uploadCsv(file, { atomic = false } = {}) {
             internal2: calc.internal2,
             final: calc.final,
             bestKey: calc.bestKey,
-            atRisk: checkRisk(calc.final, (db.settings || {}).riskThreshold || 40, calc.internal1, calc.internal2),
+            atRisk: checkRisk(calc.final, (db.settings || {}).riskThreshold || 16, calc.internal1, calc.internal2),
             anomaly: checkAnomaly(payload),
             createdAt: new Date().toISOString()
           });

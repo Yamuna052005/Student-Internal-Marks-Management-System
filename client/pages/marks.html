@@ -80,14 +80,14 @@
       </header>
 
       <main class="main ui-reveal">
-        <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.75rem;">
-          <div>
+        <header class="marks-hero">
+          <div class="marks-hero-copy">
             <p style="color: var(--primary); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Academic Records</p>
             <h1 style="font-size: clamp(1.65rem, 4vw, 2.25rem); letter-spacing: -0.02em;">Marks Management</h1>
-            <p style="color: var(--text-muted);">Weighted finals (80/20). <strong>At Risk</strong> uses the fixed <strong>16</strong> rule: final &lt; 16 or rounded I1+I2 &lt; 16 (with internals entered). Settings &ldquo;risk threshold&rdquo; is for analytics only.</p>
+            <p class="marks-hero-text" style="color: var(--text-muted);">Weighted finals (80/20). <strong>Remedial</strong> is triggered when <strong>Internal-1 &lt; 9</strong>, <strong>Internal-2 &lt; 9</strong>, or <strong>Final &lt; 16</strong>. Final below 16 is treated as a fail condition. Settings &ldquo;risk threshold&rdquo; is for analytics only.</p>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;" data-role="admin,faculty">
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end;">
+          <div class="marks-hero-actions" data-role="admin,faculty">
+            <div class="marks-hero-buttons">
             <button type="button" class="btn ghost" id="btnExport">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               Export CSV
@@ -107,7 +107,7 @@
               Add Marks
             </button>
             </div>
-            <label class="hint" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; max-width: 22rem; text-align: right;">
+            <label class="hint marks-hero-hint" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; max-width: 22rem; text-align: right;">
               <input type="checkbox" id="csvStrict" />
               Strict CSV: if any row fails validation, do not import the file (server &amp; mock)
             </label>
@@ -188,6 +188,42 @@
 
   <!-- Modals -->
   <style>
+    .marks-hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem 1.5rem;
+      margin-bottom: 1.75rem;
+    }
+    .marks-hero-copy {
+      flex: 1 1 34rem;
+      min-width: 0;
+      max-width: 68rem;
+    }
+    .marks-hero-text {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .marks-hero-actions {
+      display: flex;
+      flex: 0 1 42rem;
+      min-width: min(100%, 22rem);
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .marks-hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      width: 100%;
+    }
+    .marks-hero-hint {
+      width: 100%;
+      justify-content: flex-end;
+    }
     .marks-modal { max-width: min(560px, 100%); }
     .calc-panel { background: var(--bg-surface); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; }
     .calc-panel-accent { border-color: var(--primary); background: var(--bg-accent); }
@@ -198,6 +234,20 @@
     .table-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
     .marks-modal-actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
     @media (max-width: 540px) {
+      .marks-hero-actions {
+        min-width: 100%;
+        align-items: stretch;
+      }
+      .marks-hero-buttons {
+        justify-content: stretch;
+      }
+      .marks-hero-buttons .btn {
+        width: 100%;
+      }
+      .marks-hero-hint {
+        justify-content: flex-start;
+        text-align: left !important;
+      }
       .calc-grid { grid-template-columns: 1fr; }
       .calc-panel { padding: 1rem; margin-bottom: 1rem; }
       .marks-modal-actions { flex-direction: column; gap: 0.75rem; }
@@ -231,12 +281,12 @@
             <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">Assessment Pair 1</h4>
             <div class="calc-grid">
                <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-1 (Max 75)</label>
-                  <input class="input calc-input" id="m1" type="number" min="0" max="75" placeholder="0" />
+                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-1 (Max 20)</label>
+                  <input class="input calc-input" id="m1" type="number" min="0" max="20" placeholder="0" />
                </div>
                <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Assignment (Max 25)</label>
-                  <input class="input calc-input" id="as" type="number" min="0" max="25" placeholder="0" />
+                  <label style="font-size: 0.75rem; color: var(--text-dim);">Assignment (Max 5)</label>
+                  <input class="input calc-input" id="as" type="number" min="0" max="5" placeholder="0" />
                </div>
             </div>
             <div class="calc-summary">Total: <strong id="previewI1">—</strong> <span id="previewI1Badge"></span></div>
@@ -246,12 +296,12 @@
             <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; color: var(--accent);">Assessment Pair 2</h4>
             <div class="calc-grid">
                <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-2 (Max 75)</label>
-                  <input class="input calc-input" id="m2" type="number" min="0" max="75" placeholder="0" />
+                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-2 (Max 20)</label>
+                  <input class="input calc-input" id="m2" type="number" min="0" max="20" placeholder="0" />
                </div>
                <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Lab (Max 25)</label>
-                  <input class="input calc-input" id="lb" type="number" min="0" max="25" placeholder="0" />
+                  <label style="font-size: 0.75rem; color: var(--text-dim);">Assignment / Practical (Max 5)</label>
+                  <input class="input calc-input" id="lb" type="number" min="0" max="5" placeholder="0" />
                </div>
             </div>
             <div class="calc-summary">Total: <strong id="previewI2">—</strong> <span id="previewI2Badge"></span></div>

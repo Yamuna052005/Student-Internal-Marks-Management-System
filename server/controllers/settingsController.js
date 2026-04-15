@@ -1,6 +1,12 @@
 import { getSettingsDoc } from "../utils/ensureSettings.js";
 import { logActivity } from "../utils/activity.js";
 
+function clampSetting(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(30, n));
+}
+
 export async function getSettings(req, res, next) {
   try {
     const doc = await getSettingsDoc();
@@ -24,8 +30,8 @@ export async function updateSettings(req, res, next) {
     if (marksDeadline !== undefined) {
       doc.marksDeadline = marksDeadline ? new Date(marksDeadline) : null;
     }
-    if (riskThreshold !== undefined) doc.riskThreshold = Number(riskThreshold);
-    if (passMark !== undefined) doc.passMark = Number(passMark);
+    if (riskThreshold !== undefined) doc.riskThreshold = clampSetting(riskThreshold, 16);
+    if (passMark !== undefined) doc.passMark = clampSetting(passMark, 16);
     if (rowsPerPage !== undefined) doc.rowsPerPage = Number(rowsPerPage);
     if (defaultTerm !== undefined) doc.defaultTerm = String(defaultTerm || "").trim() || "2025-T1";
 

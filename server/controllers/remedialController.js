@@ -10,11 +10,13 @@ import {
   computeMarksPayload,
   detectInternalAnomaly,
   detectFinalSpike,
-  INTERNAL_TOTAL_RISK_THRESHOLD,
+  FINAL_FAIL_THRESHOLD,
+  INTERNAL_REMEDIAL_THRESHOLD,
+  computeInternalAtRisk,
 } from "../utils/calcMarks.js";
 
-const NOTE_AUTO_INTERNAL = "Auto-assigned: combined internals (I1+I2) below 16.";
-const NOTE_AUTO_FINAL = "Auto-assigned: final mark below 16.";
+const NOTE_AUTO_INTERNAL = `Auto-assigned: Internal-1 or Internal-2 is below ${INTERNAL_REMEDIAL_THRESHOLD}.`;
+const NOTE_AUTO_FINAL = `Auto-assigned: final mark below ${FINAL_FAIL_THRESHOLD}.`;
 
 function toCoercedNumber(v) {
   if (v == null || v === "") return NaN;
@@ -87,10 +89,10 @@ export async function resolveRemedialActorIdStrict(req) {
 }
 
 /**
- * Same idea as Marks table + dashboard: rounded effective I1+I2 < 16 (with real data), OR effective final < 16.
+ * Same idea as Marks table + dashboard: any entered internal below 9, or final below 16.
  */
 export function markEligibleForAutoRemedial(mark) {
-  const { internalTotal, finalNum } = enrichMarkNumbersForRemedial(mark);
+  const { i1, i2, internalTotal, finalNum } = enrichMarkNumbersForRemedial(mark);
 
   if (
     (!Number.isFinite(internalTotal) || internalTotal === 0) &&
@@ -99,15 +101,15 @@ export function markEligibleForAutoRemedial(mark) {
     return { eligible: false, notes: "" };
   }
 
-  const internalLow = internalTotal > 0 && internalTotal < INTERNAL_TOTAL_RISK_THRESHOLD;
-  const finalLow = Number.isFinite(finalNum) && finalNum < INTERNAL_TOTAL_RISK_THRESHOLD;
+  const internalLow = computeInternalAtRisk(i1, i2);
+  const finalLow = Number.isFinite(finalNum) && finalNum < FINAL_FAIL_THRESHOLD;
   if (internalLow) return { eligible: true, notes: NOTE_AUTO_INTERNAL };
   if (finalLow) return { eligible: true, notes: NOTE_AUTO_FINAL };
   return { eligible: false, notes: "" };
 }
 
 /**
- * When a marks row is internally or finally below the 16 threshold, ensure one remedial session exists
+ * When a marks row is internally or finally below the policy thresholds, ensure one remedial session exists
  * (before/after final equal until faculty records an intervention).
  */
 export async function ensureAutoRemedialIfEligible(mark, actorId) {
@@ -140,7 +142,7 @@ export async function ensureAutoRemedialForInternalRisk(mark, actorId) {
 }
 
 /**
- * Create auto-remedial rows for marks that qualify (internals or final below 16) but have no session yet.
+ * Create auto-remedial rows for marks that qualify (low internal or low final) but have no session yet.
  * Idempotent. Used by GET /remedials and by GET /marks (staff) so data syncs without opening Remedials first.
  */
 export async function syncAutoRemedialsFromDatabase(actorId, query = {}) {

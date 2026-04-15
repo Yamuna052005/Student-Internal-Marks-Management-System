@@ -20,6 +20,54 @@ function initialOf(name) {
   return String(name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
+function renderHistory(report) {
+  const body = qs("#historyBody");
+  if (!body) return;
+  const years = report?.years || [];
+  if (!years.length) {
+    body.innerHTML = '<div class="empty">No marks found for this student.</div>';
+    return;
+  }
+
+  body.innerHTML = years.map((year) => `
+    <section class="card" style="margin-bottom:1rem;">
+      <h3 style="margin-bottom:1rem;">Year ${esc(year.year)}</h3>
+      ${(year.semesters || []).map((sem) => `
+        <div style="margin-bottom:1rem;padding:1rem;border:1px solid var(--border);border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+            <strong>${esc(sem.semester)}</strong>
+            <span class="code-pill">${esc(sem.term)}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            ${(sem.subjects || []).map((subj) => `
+              <div style="padding:0.85rem 1rem;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.02);">
+                <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                  <strong>${esc(subj.subject)}</strong>
+                  <span class="badge ${Number(subj.final) < 16 ? "bad" : "good"}">${Number(subj.final) < 16 ? "Fail" : "Pass"}</span>
+                </div>
+                <div class="hint" style="margin-top:0.4rem;">
+                  Term ${esc(subj.term)} · I1 ${esc(subj.internal1)} · I2 ${esc(subj.internal2)} · Final ${esc(subj.final)}
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("")}
+    </section>
+  `).join("");
+}
+
+async function openHistory(student) {
+  try {
+    const data = await api(`/students/${student._id}/academic-report`);
+    qs("#historyTitle").textContent = `${student.name} - Full Academic History`;
+    renderHistory(data);
+    qs("#modalHistory").classList.add("open");
+  } catch (e) {
+    toast("bad", "Error", e.message || "Failed to load student history.");
+  }
+}
+
 async function load() {
   const params = new URLSearchParams({ page: String(state.page), limit: String(state.limit) });
   if (state.search) params.set("search", state.search);
@@ -44,15 +92,24 @@ async function load() {
         <td><span class="code-pill">${esc(student.rollNumber)}</span></td>
         <td><span class="badge">${esc(student.section)}</span></td>
         <td>
-          ${isAdmin ? `
           <div class="table-actions">
+            <button type="button" class="btn small ghost" data-history="${student._id}">History</button>
+            ${isAdmin ? `
             <button type="button" class="btn small" data-edit="${student._id}">Edit</button>
             <button type="button" class="btn small danger" data-del="${student._id}">Delete</button>
+            ` : ""}
           </div>
-          ` : '<span class="hint">Read-only</span>'}
         </td>
       </tr>`).join("")
     : '<tr><td colspan="4"><div class="empty">No students found.</div></td></tr>';
+
+  qs("#tbody").querySelectorAll("[data-history]").forEach(button =>
+    button.addEventListener("click", () => {
+      const id = button.getAttribute("data-history");
+      const student = rows.find(item => item._id === id);
+      if (student) openHistory(student);
+    })
+  );
 
   qs("#tbody").querySelectorAll("[data-edit]").forEach(button =>
     button.addEventListener("click", () => {
@@ -110,6 +167,7 @@ qs("#btnNew").addEventListener("click", () => {
 });
 
 qsa("#modalSt [data-close]").forEach(button => button.addEventListener("click", () => qs("#modalSt").classList.remove("open")));
+qsa("#modalHistory [data-close]").forEach(button => button.addEventListener("click", () => qs("#modalHistory").classList.remove("open")));
 
 qs("#stSave").addEventListener("click", async () => {
   const body = {

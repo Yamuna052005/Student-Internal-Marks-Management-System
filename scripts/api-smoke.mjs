@@ -1,8 +1,14 @@
 /**
  * API smoke tests — run with server up: npm run smoke
- * Uses seed creds: admin/admin123, faculty/faculty123, student/student123
+ * Uses admin creds from env/defaults, then ensures smoke faculty/student accounts exist.
  */
 const BASE = process.env.SIMMS_SMOKE_URL || "http://127.0.0.1:5000";
+const ADMIN_USER = process.env.SEED_ADMIN_USERNAME || "admin";
+const ADMIN_PASS = process.env.SEED_ADMIN_PASSWORD || "admin123";
+const SMOKE_FACULTY_USER = process.env.SIMMS_SMOKE_FACULTY_USER || "faculty";
+const SMOKE_FACULTY_PASS = process.env.SIMMS_SMOKE_FACULTY_PASS || "faculty123";
+const SMOKE_STUDENT_USER = process.env.SIMMS_SMOKE_STUDENT_USER || "student";
+const SMOKE_STUDENT_PASS = process.env.SIMMS_SMOKE_STUDENT_PASS || "student123";
 
 let passed = 0;
 let failed = 0;
@@ -58,12 +64,74 @@ function authHeader(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function ensureUserByUsername(adminToken, { username, name, password, role, rollNumber, section, facultyId }) {
+  const normalized = String(username).trim().toLowerCase();
+  const list = await req("/api/users", { headers: authHeader(adminToken) });
+  if (list.status !== 200 || !Array.isArray(list.data?.users)) {
+    throw new Error(`list users failed: ${list.status}`);
+  }
+
+  const existing = list.data.users.find((u) => String(u.username).trim().toLowerCase() === normalized);
+  const payload = {
+    username: normalized,
+    name,
+    password,
+    role,
+    ...(rollNumber ? { rollNumber } : {}),
+    ...(section ? { section } : {}),
+    ...(facultyId ? { facultyId } : {}),
+  };
+
+  if (!existing) {
+    const created = await req("/api/users", {
+      method: "POST",
+      headers: authHeader(adminToken),
+      json: payload,
+    });
+    if (created.status !== 201 || !created.data?.user?._id) {
+      throw new Error(`create user ${normalized} failed: ${created.status} ${JSON.stringify(created.data)}`);
+    }
+    return created.data.user;
+  }
+
+  const updated = await req(`/api/users/${existing._id}`, {
+    method: "PATCH",
+    headers: authHeader(adminToken),
+    json: {
+      name,
+      password,
+      ...(role && role !== existing.role ? { role } : {}),
+      ...(role === "student" ? { rollNumber: rollNumber || "", section: section || "", ...(facultyId ? { facultyId } : {}) } : {}),
+    },
+  });
+  if (updated.status !== 200 || !updated.data?.user?._id) {
+    throw new Error(`update user ${normalized} failed: ${updated.status} ${JSON.stringify(updated.data)}`);
+  }
+  return updated.data.user;
+}
+
 async function main() {
   console.log(`SIMMS API smoke — ${BASE}\n`);
 
-  const adminT = await login("admin", "admin123");
-  const facultyT = await login("faculty", "faculty123");
-  const studentT = await login("student", "student123");
+  const adminT = await login(ADMIN_USER, ADMIN_PASS);
+  const facultyUser = await ensureUserByUsername(adminT, {
+    username: SMOKE_FACULTY_USER,
+    name: "Smoke Faculty",
+    password: SMOKE_FACULTY_PASS,
+    role: "faculty",
+  });
+  const studentUser = await ensureUserByUsername(adminT, {
+    username: SMOKE_STUDENT_USER,
+    name: "Smoke Student",
+    password: SMOKE_STUDENT_PASS,
+    role: "student",
+    rollNumber: "SMOKE-STUDENT-001",
+    section: "Smoke",
+    facultyId: facultyUser._id,
+  });
+
+  const facultyT = await login(SMOKE_FACULTY_USER, SMOKE_FACULTY_PASS);
+  const studentT = await login(SMOKE_STUDENT_USER, SMOKE_STUDENT_PASS);
 
   // Role: student cannot list students
   {
@@ -102,7 +170,7 @@ async function main() {
   let peerMarkId = null;
   {
     const { status, data } = await req("/api/marks?limit=5", { headers: authHeader(studentT) });
-    if (status === 200 && data?.marks?.length >= 1) {
+    if (status === 200 && Array.isArray(data?.marks)) {
       ok("student GET /api/marks -> 200 (own)");
     } else fail("student GET /api/marks", `${status}`);
   }

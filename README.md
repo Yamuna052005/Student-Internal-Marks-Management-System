@@ -84,21 +84,22 @@ client/
 - `GET|PATCH /api/settings` — deadline, thresholds, **`defaultTerm`** (PATCH **admin**)
 - `GET|POST|PATCH|DELETE /api/students` — student roster (**admin** and **faculty** manage students). **POST** automatically creates a linked **User** account; **DELETE** removes it.
 - `GET|POST|PATCH|DELETE /api/marks` — marks; **computed final** on server; request body uses **`student`** (Mongo ObjectId string) plus **`subject`**; legacy **`studentId`** is still accepted. `POST /api/marks/bulk` — JSON `{ "marks": [ { student, subject, term?, mid1?, mid2?, assignment?, lab? }, ... ] }` (max 200 rows; upserts like CSV). `POST /api/marks/import/csv` (multipart `file`; CSV must include **Name** + **Subject** columns — see `server/utils/csvParse.js`; optional **`?atomic=1`** or form field **`atomic=1`** — see **Strict CSV import** below)
-- `GET /api/students/:id/academic-report` — full academic report for one student: **`years[]` → `semesters[]` → `subjects[]`** (marks with **`internalTotal`**, **`internalAtRisk`**), plus **`internalRiskSubjects`** (I1+I2 &lt; 16) and **`remedials`**. **Student** role may only call this for their own `:id`; **admin** / **faculty** for any student.
+- `GET /api/students/:id/academic-report` — full academic report for one student: **`years[]` → `semesters[]` → `subjects[]`** (marks with **`internalTotal`**, **`internalAtRisk`**), plus **`internalRiskSubjects`** (Internal-1 or Internal-2 &lt; 9) and **`remedials`**. **Student** role may only call this for their own `:id`; **admin** / **faculty** for any student.
 - `GET /api/marks/meta/terms` — distinct **`term`** values in DB (+ **`defaultTerm`** from settings); scoped to the logged-in student for **student** role  
 - `GET /api/marks` — optional **`?term=`**: omit or use current **`defaultTerm`** from settings; **`term=all`** = all academic terms  
 - `GET /api/marks/export/csv`
 - `GET /api/analytics/summary` — same **`term`** query as marks; MongoDB aggregates + chart data; includes **`studentRiskInsights`** and **`predictedHighRiskCount`** (predictive / multi-subject risk — see below)
-- `GET|POST /api/remedials` — when marks are saved (or when staff **GET** the list), the server ensures one **`RemedialSession`** per qualifying marks row if none exists: **rounded I1+I2 &lt; 16** (with non-zero internals) **or** **final &lt; 16** (aligned with the student dashboard). Trivial all-zero rows are skipped. **`GET /api/remedials`** and **`GET /api/marks`** (faculty/admin) both run the same **sync** so the Intervention Log stays current even if you only use the Marks page. Faculty can add follow-up remedials from the Marks page after an intervention.
+- `GET|POST /api/remedials` — when marks are saved (or when staff **GET** the list), the server ensures one **`RemedialSession`** per qualifying marks row if none exists: **Internal-1 &lt; 9**, **Internal-2 &lt; 9**, or **final &lt; 16** (aligned with the student dashboard). Trivial all-zero rows are skipped. **`GET /api/remedials`** and **`GET /api/marks`** (faculty/admin) both run the same **sync** so the Intervention Log stays current even if you only use the Marks page. Faculty can add follow-up remedials from the Marks page after an intervention.
 - `GET /api/activity` — faculty/admin; `GET /api/activity/export/csv` — **admin**
 - `GET|POST|PATCH|DELETE /api/users` — **admin**
 
 ## 80/20 rule (server)
 
 - Internal-1 = Mid-1 + Assignment  
-- Internal-2 = Mid-2 + Lab  
+- Internal-2 = Mid-2 + Lab / Assignment-2  
 - `final = 0.8 * max(i1, i2) + 0.2 * min(i1, i2)`  
-- **Marks `atRisk` flag** (marks table, filters, dashboard count): **`final < 16`** **or** **rounded** `internal1 + internal2 < 16` with **non-zero combined internals** (`INTERNAL_TOTAL_RISK_THRESHOLD` in `server/utils/calcMarks.js`). Settings **`riskThreshold`** (default 40) is **not** used for this flag — it is for **analytics / predictive insights** and pass-style views only. Staff **GET /marks** reconciles stored `atRisk` against this rule.  
+- For your college rule, each internal is out of **25**: usually **Mid = 20** and **Assignment / Practical = 5**.  
+- **Marks `atRisk` flag** (marks table, filters, dashboard count): **`final < 16`** or **`internal1 < 9`** or **`internal2 < 9`** when marks are entered. Final below 16 is treated as a fail condition. Settings **`riskThreshold`** (default 40) is **not** used for this flag — it is for **analytics / predictive insights** and pass-style views only. Staff **GET /marks** reconciles stored `atRisk` against this rule.  
 - **Anomaly** if internal gap spike or large jump vs prior final (see `server/utils/calcMarks.js`).
 
 ## Academic terms (historical / per-period marks)

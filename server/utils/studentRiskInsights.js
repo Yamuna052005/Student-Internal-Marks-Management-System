@@ -2,8 +2,13 @@
  * Aggregates per-student signals from mark rows (with populated `student`)
  * for elevated-risk insight beyond single-row `atRisk` flags.
  */
-export function computeStudentRiskInsights(markRows, { passMark = 40, riskThreshold = 40 } = {}) {
-  const RT = Number(riskThreshold);
+export const PREDICTIVE_RISK_THRESHOLD = 16;
+
+export function computeStudentRiskInsights(
+  markRows,
+  { passMark = 40, predictiveThreshold = PREDICTIVE_RISK_THRESHOLD } = {}
+) {
+  const PT = Number(predictiveThreshold);
   const PM = Number(passMark);
   const byStudent = new Map();
 
@@ -23,7 +28,7 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
     const finals = ms.map((m) => Number(m.final) || 0);
     const avg = finals.reduce((a, b) => a + b, 0) / finals.length;
     const minFinal = Math.min(...finals);
-    const lowSubj = ms.filter((m) => (Number(m.final) || 0) < RT).length;
+    if (!(avg < PT)) continue;
 
     let declineCount = 0;
     for (const m of ms) {
@@ -45,21 +50,8 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
     let score = 0;
     const factors = [];
 
-    if (avg < RT) {
-      score += 35;
-      factors.push(`Course average ${avg.toFixed(1)} is below the risk threshold (${RT}).`);
-    } else if (avg < RT + 8) {
-      score += 18;
-      factors.push(`Course average ${avg.toFixed(1)} is borderline (within 8 marks of threshold).`);
-    }
-
-    if (lowSubj >= 2) {
-      score += 25;
-      factors.push(`${lowSubj} subjects are below the risk threshold — weak pattern across courses.`);
-    } else if (lowSubj === 1 && ms.length >= 2) {
-      score += 12;
-      factors.push(`One subject below threshold with multiple courses on record — check breadth of performance.`);
-    }
+    score += 45;
+    factors.push(`Course average ${avg.toFixed(1)} is below the predictive threshold (${PT}).`);
 
     if (declineCount > 0) {
       score += Math.min(20, 10 + declineCount * 5);
@@ -73,7 +65,7 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
       factors.push(`Lowest subject final (${minFinal}) is under the pass mark (${PM}).`);
     }
 
-    if (volatileInternals >= 2 && score < 40) {
+    if (volatileInternals >= 2 && score < 70) {
       score += 8;
       factors.push(`Large internal split in several subjects — inconsistent performance.`);
     }

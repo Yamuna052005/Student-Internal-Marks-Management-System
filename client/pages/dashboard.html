@@ -156,7 +156,7 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
               Year → Semester → Subjects → Marks
             </h2>
-            <p class="hint" style="margin-bottom:1rem">Flow: Year → Semester → Subjects → Marks (from term codes such as 2025-T1). Each subject lists components, internals (I1/I2), and final; internals sum under 16 is flagged At Risk.</p>
+            <p class="hint" style="margin-bottom:1rem">Flow: Year → Semester → Subjects → Marks (from term codes such as 2025-T1). Each subject lists components, internals (I1/I2), and final; Internal-1 or Internal-2 below 9 is flagged for remedial support.</p>
             <div id="academicReportTree" class="academic-tree"></div>
             <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
               <a href="/pages/marks.html" class="btn ghost" style="font-size:0.85rem">
@@ -170,10 +170,10 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               Remedial
             </h2>
-            <p class="hint" style="margin-bottom:1rem">Subjects where your <strong>final mark</strong> or <strong>combined internals (I1 + I2)</strong> are below 16, plus any remedial sessions recorded for you.</p>
+            <p class="hint" style="margin-bottom:1rem">Subjects where your <strong>final mark is below 16</strong> or <strong>Internal-1 / Internal-2 is below 9</strong>, plus any remedial sessions recorded for you.</p>
             <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Final mark under 16</h3>
             <div id="studentLowFinalList" class="list-stack" style="margin-bottom:1.25rem"></div>
-            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Combined internals under 16 (I1 + I2)</h3>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Internal marks below 9 (I1 or I2)</h3>
             <div id="studentInternalRiskList" class="list-stack" style="margin-bottom:1.25rem"></div>
             <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Your remedial sessions</h3>
             <div id="studentRemedialList" class="list-stack"></div>
@@ -196,6 +196,14 @@
               Needs Attention
             </h2>
             <div class="list-stack" id="lowList"></div>
+          </div>
+        </section>
+
+        <section class="grid cols-1" id="resultsSection" style="margin-bottom:2rem">
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.35rem">Results Overview</h2>
+            <p class="hint" style="margin-bottom:1.25rem">Pass and fail counts based on the current term filter and your 30-mark rule.</p>
+            <div class="list-stack" id="resultsList"></div>
           </div>
         </section>
 

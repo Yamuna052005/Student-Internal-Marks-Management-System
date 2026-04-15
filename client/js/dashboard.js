@@ -39,7 +39,8 @@ function setTrend(id, text, tone = "") {
   el.className = `trend-chip${tone ? ` ${tone}` : ""}`;
 }
 
-const INTERNAL_RISK_TH = 16;
+const INTERNAL_RISK_TH = 9;
+const FINAL_FAIL_TH = 16;
 
 function academicFlowArrow() {
   return `<span class="academic-flow-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h12"/><path d="M13 6l6 6-6 6"/></svg></span>`;
@@ -72,9 +73,8 @@ function renderAcademicReportTree(el, report) {
                 m.internalTotal != null ? Number(m.internalTotal) : Math.round((i1 + i2) * 10) / 10;
               const finNum = Number(m.final);
               const fin = Number.isFinite(finNum) ? finNum : 0;
-              const finalLow = fin < INTERNAL_RISK_TH;
-              const internalLow =
-                m.internalAtRisk === true || (sum > 0 && sum < INTERNAL_RISK_TH);
+              const finalLow = fin < FINAL_FAIL_TH;
+              const internalLow = m.internalAtRisk === true;
               const rowAtRisk = finalLow || internalLow;
               const riskBadge = rowAtRisk
                 ? `<span class="badge bad">At Risk</span>`
@@ -128,7 +128,7 @@ function renderAcademicReportTree(el, report) {
   el.innerHTML = `${legend}<div class="academic-flow-body">${body}</div>`;
 }
 
-function renderLowFinalList(el, items, threshold = INTERNAL_RISK_TH) {
+function renderLowFinalList(el, items, threshold = FINAL_FAIL_TH) {
   if (!el) return;
   if (!items || !items.length) {
     el.innerHTML = `<div class="empty">No subjects with final mark under ${threshold}.</div>`;
@@ -147,13 +147,13 @@ function renderLowFinalList(el, items, threshold = INTERNAL_RISK_TH) {
 function renderInternalRiskList(el, items, threshold = INTERNAL_RISK_TH) {
   if (!el) return;
   if (!items || !items.length) {
-    el.innerHTML = `<div class="empty">No subjects below the internal threshold (I1 + I2 &lt; ${threshold}).</div>`;
+    el.innerHTML = `<div class="empty">No subjects with Internal-1 or Internal-2 below ${threshold}.</div>`;
     return;
   }
   el.innerHTML = items
     .map(
       (m) => `<div class="entity-row">
-    <div class="entity-main"><strong>${esc(m.subject)}</strong><span class="entity-subtitle">${esc(m.term)} · internals total ${esc(String(m.internalTotal))}</span></div>
+    <div class="entity-main"><strong>${esc(m.subject)}</strong><span class="entity-subtitle">${esc(m.term)} · I1 ${esc(String(m.internal1))} · I2 ${esc(String(m.internal2))}</span></div>
     <div class="entity-side"><span class="trend-chip bad">At Risk</span></div>
   </div>`
     )
@@ -185,7 +185,7 @@ function renderRank(el, rows, kind, passMark) {
   if (!rows || !rows.length) {
     const emptyMsg =
       kind === "risk"
-        ? "No marks flagged at risk (final &lt; 16 or I1+I2 &lt; 16)."
+        ? "No marks flagged at risk (final &lt; 16 or either internal &lt; 9)."
         : kind === "top"
           ? passMark != null && Number.isFinite(Number(passMark))
             ? `No marks at or above the pass mark (${Number(passMark)}) in this view.`
@@ -248,6 +248,40 @@ function renderPredictive(el, insights, highCount) {
     }).join("");
 }
 
+function renderResults(el, passFail, passMark) {
+  if (!el) return;
+  const pass = Number(passFail?.pass ?? 0);
+  const fail = Number(passFail?.fail ?? 0);
+  const total = pass + fail;
+  if (!total) {
+    el.innerHTML = `<div class="empty">No result data available yet.</div>`;
+    return;
+  }
+  const passPct = Math.round((pass / total) * 100);
+  const failPct = Math.round((fail / total) * 100);
+  el.innerHTML = `
+    <div class="entity-row entity-row-wide">
+      <div class="entity-main">
+        <div class="entity-title-row"><strong>Pass Results</strong></div>
+        <span class="entity-subtitle">${pass} students/records at or above ${passMark}</span>
+      </div>
+      <div class="entity-side">
+        <span class="trend-chip good">${passPct}%</span>
+        <span class="metric-value good">${pass}</span>
+      </div>
+    </div>
+    <div class="entity-row entity-row-wide">
+      <div class="entity-main">
+        <div class="entity-title-row"><strong>Fail Results</strong></div>
+        <span class="entity-subtitle">${fail} students/records below ${passMark}</span>
+      </div>
+      <div class="entity-side">
+        <span class="trend-chip bad">${failPct}%</span>
+        <span class="metric-value bad">${fail}</span>
+      </div>
+    </div>`;
+}
+
 function renderActivity(el, items) {
   if (!el) return;
   if (!items || !items.length) {
@@ -293,7 +327,8 @@ async function boot() {
     /* ── Greeting ── */
     setEl("heroGreeting", isStudent ? `Welcome back, ${studentName}` : "System Pulse Dashboard");
 
-    const markTh = academicReport?.markAlertThreshold ?? INTERNAL_RISK_TH;
+    const markTh = academicReport?.markAlertThreshold ?? FINAL_FAIL_TH;
+    const internalTh = academicReport?.internalRiskThreshold ?? INTERNAL_RISK_TH;
     const lowFinalN = academicReport?.lowFinalSubjects?.length ?? 0;
 
     if (isStudent) {
@@ -309,9 +344,9 @@ async function boot() {
       setEl("kpiRisk", riskCount > 0 || internalRiskN > 0 || lowFinalN > 0 ? "At Risk" : "On Track");
       setEl("kpiAnom", String(anomalyCount));
 
-      const avgTone = avgScore >= 75 ? "good" : avgScore >= 40 ? "warn" : avgScore > 0 ? "bad" : "";
+      const avgTone = avgScore >= 24 ? "good" : avgScore >= 16 ? "warn" : avgScore > 0 ? "bad" : "";
       setTrend("kpiStudentsTrend",
-        avgScore > 0 ? (avgScore >= 75 ? "Strong performance" : avgScore >= 40 ? "Passing average" : "Below threshold") : "No marks yet",
+        avgScore > 0 ? (avgScore >= 24 ? "Strong performance" : avgScore >= 16 ? "Passing average" : "Below threshold") : "No marks yet",
         avgTone);
       setTrend("kpiRecordsTrend",
         recordsCount > 0 ? `${recordsCount} subject${recordsCount !== 1 ? "s" : ""} on file` : "No records yet",
@@ -319,8 +354,8 @@ async function boot() {
       {
         const rp = [];
         if (lowFinalN) rp.push(`${lowFinalN} final <${markTh}`);
-        if (internalRiskN) rp.push(`${internalRiskN} low internals (<${markTh})`);
-        if (riskCount) rp.push(`${riskCount} at-risk mark(s) (final or I1+I2 < ${INTERNAL_RISK_TH})`);
+        if (internalRiskN) rp.push(`${internalRiskN} internal mark(s) below ${INTERNAL_RISK_TH}`);
+        if (riskCount) rp.push(`${riskCount} at-risk mark(s) (final < ${FINAL_FAIL_TH} or I1/I2 < ${INTERNAL_RISK_TH})`);
         setTrend("kpiRiskTrend", rp.length ? rp.join(" · ") : "All subjects healthy", rp.length ? "bad" : "good");
       }
       setTrend("kpiAnomTrend",
@@ -341,11 +376,12 @@ async function boot() {
 
       renderAcademicReportTree(document.getElementById("academicReportTree"), academicReport);
       renderLowFinalList(document.getElementById("studentLowFinalList"), academicReport?.lowFinalSubjects, markTh);
-      renderInternalRiskList(document.getElementById("studentInternalRiskList"), academicReport?.internalRiskSubjects, markTh);
+      renderInternalRiskList(document.getElementById("studentInternalRiskList"), academicReport?.internalRiskSubjects, internalTh);
       renderStudentRemedials(document.getElementById("studentRemedialList"), academicReport?.remedials);
 
       // Hide staff-only sections
       document.getElementById("staffHighlights")?.remove();
+      document.getElementById("resultsSection")?.remove();
       document.getElementById("predictiveSection")?.remove();
       document.getElementById("activitySection")?.remove();
 
@@ -377,6 +413,7 @@ async function boot() {
 
       renderRank(document.getElementById("topList"), summary.top || [], "top", summary.settings?.passMark);
       renderRank(document.getElementById("lowList"), summary.atRiskList || [], "risk");
+      renderResults(document.getElementById("resultsList"), summary.passFail, summary.settings?.passMark ?? 16);
       renderPredictive(document.getElementById("predictiveList"), summary.studentRiskInsights || [], ph);
       if (isAdmin) {
         renderActivity(document.getElementById("actList"), activityData.activity || []);

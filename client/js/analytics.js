@@ -272,9 +272,9 @@ async function initStudentSubjectTrend(tick, grid) {
             },
             y: {
               beginAtZero: true,
-              max: 100,
+              max: 30,
               grace: "5%",
-              ticks: { color: tick, stepSize: 10 },
+              ticks: { color: tick, stepSize: 5 },
               grid: { color: grid },
               border: { color: grid },
             },
@@ -384,7 +384,7 @@ try {
     const riskList = document.getElementById("riskList");
     const anomalyList = document.getElementById("anomalyList");
 
-    const pm = summary.settings?.passMark ?? 40;
+    const pm = summary.settings?.passMark ?? 16;
     if (topList) {
       topList.innerHTML = (summary.top || []).length
         ? (summary.top || []).map(mark => buildEntityRow(mark, { badgeTone: "good", badgeText: `${mark.final}` })).join("")

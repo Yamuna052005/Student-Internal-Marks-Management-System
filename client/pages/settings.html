@@ -107,12 +107,12 @@
                 <div style="display: flex; flex-direction: column; gap: 2rem;">
                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                       <div>
-                        <label style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">Risk Threshold (%)</label>
-                        <input class="input" id="riskT" type="number" />
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">Risk Threshold</label>
+                        <input class="input" id="riskT" type="number" min="0" max="30" />
                       </div>
                       <div>
-                        <label style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">Pass Mark (%)</label>
-                        <input class="input" id="passM" type="number" />
+                        <label style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">Pass Mark</label>
+                        <input class="input" id="passM" type="number" min="0" max="30" />
                       </div>
                    </div>
                    <div>

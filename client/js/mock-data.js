@@ -24,20 +24,20 @@ const INITIAL_DATA = {
     { _id: "s1", name: "Alice Johnson", email: "alice@univ.edu", rollNumber: "2024001", section: "A", createdBy: "u2" },
     { _id: "s2", name: "Bob Smith",     email: "bob@univ.edu",   rollNumber: "2024002", section: "B", createdBy: "u2" },
   ],
-  // Finals pre-computed: best(I1,I2)×0.8 + other×0.2
+  // Finals pre-computed: best(I1,I2)×0.8 + other×0.2, with each internal out of 25.
   marks: [
-    // Alice: I1=85+15=100, I2=70+25=95 → 100×0.8+95×0.2 = 99.0
-    { _id: "m1", studentId: "s1", term: "2025-T1", subject: "Mathematics",     mid1: 85, assignment: 15, mid2: 70, lab: 25, internal1: 100, internal2: 95,  final: 99.0,  bestKey: "internal1", atRisk: false, anomaly: false },
-    // Alice: I1=72+18=90, I2=78+22=100 → 100×0.8+90×0.2 = 98.0
-    { _id: "m2", studentId: "s1", term: "2025-T1", subject: "Data Structures", mid1: 72, assignment: 18, mid2: 78, lab: 22, internal1: 90,  internal2: 100, final: 98.0,  bestKey: "internal2", atRisk: false, anomaly: false },
-    // Bob:   I1=35+10=45, I2=38+12=50 → 50×0.8+45×0.2 = 49.0
-    { _id: "m3", studentId: "s2", term: "2025-T1", subject: "Physics",         mid1: 35, assignment: 10, mid2: 38, lab: 12, internal1: 45,  internal2: 50,  final: 49.0,  bestKey: "internal2", atRisk: false, anomaly: false },
-    // Bob:   I1=90+20=110, I2=50+20=70 → 110×0.8+70×0.2 = 102.0 (anomaly: |110-70|=40>30)
-    { _id: "m4", studentId: "s2", term: "2025-T1", subject: "Mathematics",     mid1: 90, assignment: 20, mid2: 50, lab: 20, internal1: 110, internal2: 70,  final: 102.0, bestKey: "internal1", atRisk: false, anomaly: true  },
+    // Alice: I1=18+5=23, I2=17+4=21 → 23×0.8+21×0.2 = 22.6
+    { _id: "m1", studentId: "s1", term: "2025-T1", subject: "Mathematics",     mid1: 18, assignment: 5, mid2: 17, lab: 4, internal1: 23, internal2: 21, final: 22.6, bestKey: "internal1", atRisk: false, anomaly: false },
+    // Alice: I1=16+4=20, I2=19+5=24 → 24×0.8+20×0.2 = 23.2
+    { _id: "m2", studentId: "s1", term: "2025-T1", subject: "Data Structures", mid1: 16, assignment: 4, mid2: 19, lab: 5, internal1: 20, internal2: 24, final: 23.2, bestKey: "internal2", atRisk: false, anomaly: false },
+    // Bob: I1=7+1=8, I2=10+2=12 → remedial because I1 < 9.
+    { _id: "m3", studentId: "s2", term: "2025-T1", subject: "Physics",         mid1: 7, assignment: 1, mid2: 10, lab: 2, internal1: 8, internal2: 12, final: 11.2, bestKey: "internal2", atRisk: true, anomaly: false },
+    // Bob: I1=20+5=25, I2=8+0=8 → anomaly because the internal gap is large.
+    { _id: "m4", studentId: "s2", term: "2025-T1", subject: "Mathematics",     mid1: 20, assignment: 5, mid2: 8, lab: 0, internal1: 25, internal2: 8, final: 21.6, bestKey: "internal1", atRisk: true, anomaly: true },
   ],
   settings: {
-    riskThreshold: 40,
-    passMark: 40,
+    riskThreshold: 16,
+    passMark: 16,
     defaultTerm: "2025-T1",
     marksDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     institutionName: "Antigravity University",
@@ -48,12 +48,13 @@ const INITIAL_DATA = {
   remedials: [],
 };
 
-const DB_VERSION = 7;
+const DB_VERSION = 9;
 
-export const INTERNAL_TOTAL_RISK_THRESHOLD = 16;
+export const INTERNAL_REMEDIAL_THRESHOLD = 9;
+export const FINAL_FAIL_THRESHOLD = 16;
 
-const NOTE_AUTO_INTERNAL = "Auto-assigned: combined internals (I1+I2) below 16.";
-const NOTE_AUTO_FINAL = "Auto-assigned: final mark below 16.";
+const NOTE_AUTO_INTERNAL = `Auto-assigned: Internal-1 or Internal-2 is below ${INTERNAL_REMEDIAL_THRESHOLD}.`;
+const NOTE_AUTO_FINAL = `Auto-assigned: final mark below ${FINAL_FAIL_THRESHOLD}.`;
 
 function mockEnrichMarkForRemedial(markRow) {
   const i1 =
@@ -69,19 +70,20 @@ function mockEnrichMarkForRemedial(markRow) {
     finalNum = calculateFinal(markRow).final;
   }
   const internalTotal = Math.round((i1 + i2) * 10) / 10;
-  return { internalTotal, finalNum };
+  return { i1, i2, internalTotal, finalNum };
 }
 
 function mockMarkEligibleForAutoRemedial(markRow) {
-  const { internalTotal, finalNum } = mockEnrichMarkForRemedial(markRow);
+  const { i1, i2, internalTotal, finalNum } = mockEnrichMarkForRemedial(markRow);
   if (
     (!Number.isFinite(internalTotal) || internalTotal === 0) &&
     (!Number.isFinite(finalNum) || finalNum === 0)
   ) {
     return { eligible: false, notes: "" };
   }
-  const internalLow = internalTotal > 0 && internalTotal < INTERNAL_TOTAL_RISK_THRESHOLD;
-  const finalLow = Number.isFinite(finalNum) && finalNum < INTERNAL_TOTAL_RISK_THRESHOLD;
+  const internalLow =
+    (i1 > 0 && i1 < INTERNAL_REMEDIAL_THRESHOLD) || (i2 > 0 && i2 < INTERNAL_REMEDIAL_THRESHOLD);
+  const finalLow = Number.isFinite(finalNum) && finalNum < FINAL_FAIL_THRESHOLD;
   if (internalLow) return { eligible: true, notes: NOTE_AUTO_INTERNAL };
   if (finalLow) return { eligible: true, notes: NOTE_AUTO_FINAL };
   return { eligible: false, notes: "" };
@@ -202,14 +204,13 @@ export function checkAnomaly(m, priorFinal = null) {
   return detectInternalAnomaly(internal1, internal2) || detectFinalSpike(priorFinal, final);
 }
 
-/** Mirrors server `computeCombinedAtRisk`: final &lt; 16 or internal total rule (ignores settings riskThreshold). */
-export function checkRisk(final, _thresholdIgnored = 40, internal1, internal2) {
+/** Mirrors server `computeCombinedAtRisk`: final &lt; 16 or either internal &lt; 9. */
+export function checkRisk(final, _thresholdIgnored = 16, internal1, internal2) {
   const f = Number(final);
-  if (Number.isFinite(f) && f < INTERNAL_TOTAL_RISK_THRESHOLD) return true;
+  if (Number.isFinite(f) && f < FINAL_FAIL_THRESHOLD) return true;
   const i1 = Number(internal1) || 0;
   const i2 = Number(internal2) || 0;
-  const sum = Math.round((i1 + i2) * 10) / 10;
-  if (sum > 0 && sum < INTERNAL_TOTAL_RISK_THRESHOLD) return true;
+  if ((i1 > 0 && i1 < INTERNAL_REMEDIAL_THRESHOLD) || (i2 > 0 && i2 < INTERNAL_REMEDIAL_THRESHOLD)) return true;
   return false;
 }
 
@@ -285,7 +286,7 @@ export function mockAcademicReport(db, studentId) {
     const i2 = Number(m.internal2 ?? (m.mid2 || 0) + (m.lab || 0));
     const internalTotal = Math.round((i1 + i2) * 10) / 10;
     const internalAtRisk =
-      internalTotal > 0 && internalTotal < INTERNAL_TOTAL_RISK_THRESHOLD;
+      (i1 > 0 && i1 < INTERNAL_REMEDIAL_THRESHOLD) || (i2 > 0 && i2 < INTERNAL_REMEDIAL_THRESHOLD);
     return {
       _id: m._id,
       subject: m.subject,
@@ -316,7 +317,7 @@ export function mockAcademicReport(db, studentId) {
       internal2: m.internal2,
       final: m.final,
     }));
-  const markAlertThreshold = INTERNAL_TOTAL_RISK_THRESHOLD;
+  const markAlertThreshold = FINAL_FAIL_THRESHOLD;
   const lowFinalSubjects = enriched
     .filter((m) => Number(m.final) < markAlertThreshold)
     .map((m) => ({
@@ -334,7 +335,7 @@ export function mockAcademicReport(db, studentId) {
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   return {
     student: st,
-    internalRiskThreshold: INTERNAL_TOTAL_RISK_THRESHOLD,
+    internalRiskThreshold: INTERNAL_REMEDIAL_THRESHOLD,
     markAlertThreshold,
     years,
     internalRiskSubjects,
@@ -344,8 +345,13 @@ export function mockAcademicReport(db, studentId) {
 }
 
 /** Mirrors server/utils/studentRiskInsights.js for mock analytics. */
-export function computeStudentRiskInsights(markRows, { passMark = 40, riskThreshold = 40 } = {}) {
-  const RT = Number(riskThreshold);
+export const PREDICTIVE_RISK_THRESHOLD = 16;
+
+export function computeStudentRiskInsights(
+  markRows,
+  { passMark = 40, predictiveThreshold = PREDICTIVE_RISK_THRESHOLD } = {}
+) {
+  const PT = Number(predictiveThreshold);
   const PM = Number(passMark);
   const byStudent = new Map();
   for (const m of markRows) {
@@ -361,7 +367,7 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
     const finals = ms.map((m) => Number(m.final) || 0);
     const avg = finals.reduce((a, b) => a + b, 0) / finals.length;
     const minFinal = Math.min(...finals);
-    const lowSubj = ms.filter((m) => (Number(m.final) || 0) < RT).length;
+    if (!(avg < PT)) continue;
     let declineCount = 0;
     for (const m of ms) {
       const pf = m.priorFinal;
@@ -378,20 +384,8 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
     }
     let score = 0;
     const factors = [];
-    if (avg < RT) {
-      score += 35;
-      factors.push(`Course average ${avg.toFixed(1)} is below the risk threshold (${RT}).`);
-    } else if (avg < RT + 8) {
-      score += 18;
-      factors.push(`Course average ${avg.toFixed(1)} is borderline (within 8 marks of threshold).`);
-    }
-    if (lowSubj >= 2) {
-      score += 25;
-      factors.push(`${lowSubj} subjects are below the risk threshold — weak pattern across courses.`);
-    } else if (lowSubj === 1 && ms.length >= 2) {
-      score += 12;
-      factors.push(`One subject below threshold with multiple courses on record — check breadth of performance.`);
-    }
+    score += 45;
+    factors.push(`Course average ${avg.toFixed(1)} is below the predictive threshold (${PT}).`);
     if (declineCount > 0) {
       score += Math.min(20, 10 + declineCount * 5);
       factors.push(
@@ -402,7 +396,7 @@ export function computeStudentRiskInsights(markRows, { passMark = 40, riskThresh
       score += 15;
       factors.push(`Lowest subject final (${minFinal}) is under the pass mark (${PM}).`);
     }
-    if (volatileInternals >= 2 && score < 40) {
+    if (volatileInternals >= 2 && score < 70) {
       score += 8;
       factors.push(`Large internal split in several subjects — inconsistent performance.`);
     }

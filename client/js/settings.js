@@ -124,8 +124,8 @@ function renderSettings() {
     if (saveSet) saveSet.style.display = "none";
   }
 
-  riskT.value = state.settings.riskThreshold ?? 40;
-  passM.value = state.settings.passMark ?? 40;
+  riskT.value = state.settings.riskThreshold ?? 16;
+  passM.value = state.settings.passMark ?? 16;
   defaultTerm.value = state.settings.defaultTerm || "2025-T1";
   deadline.value = state.settings.marksDeadline ? state.settings.marksDeadline.slice(0, 16) : "";
 }

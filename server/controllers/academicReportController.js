@@ -4,15 +4,18 @@ import { RemedialSession } from "../models/RemedialSession.js";
 import { getSettingsDoc } from "../utils/ensureSettings.js";
 import { groupMarksByYearSemester } from "../utils/academicReport.js";
 import { resolveMarkTermForApi } from "../utils/termScope.js";
-import { INTERNAL_TOTAL_RISK_THRESHOLD } from "../utils/calcMarks.js";
+import {
+  FINAL_FAIL_THRESHOLD,
+  INTERNAL_REMEDIAL_THRESHOLD,
+  computeInternalAtRisk,
+} from "../utils/calcMarks.js";
 
 function enrichMark(m, settings) {
   const norm = resolveMarkTermForApi({ ...m }, settings);
   const i1 = Number(norm.internal1 ?? 0);
   const i2 = Number(norm.internal2 ?? 0);
   const internalTotal = Math.round((i1 + i2) * 10) / 10;
-  const internalAtRisk =
-    internalTotal > 0 && internalTotal < INTERNAL_TOTAL_RISK_THRESHOLD;
+  const internalAtRisk = computeInternalAtRisk(i1, i2);
   return {
     _id: norm._id,
     subject: norm.subject,
@@ -67,7 +70,8 @@ export async function getStudentAcademicReport(req, res, next) {
         final: m.final,
       }));
 
-    const markAlertThreshold = INTERNAL_TOTAL_RISK_THRESHOLD;
+    const markAlertThreshold = FINAL_FAIL_THRESHOLD;
+    const internalRiskThreshold = INTERNAL_REMEDIAL_THRESHOLD;
     const lowFinalSubjects = enriched
       .filter((m) => Number(m.final) < markAlertThreshold)
       .map((m) => ({
@@ -86,7 +90,7 @@ export async function getStudentAcademicReport(req, res, next) {
 
     res.json({
       student: st,
-      internalRiskThreshold: INTERNAL_TOTAL_RISK_THRESHOLD,
+      internalRiskThreshold,
       markAlertThreshold,
       years,
       internalRiskSubjects,

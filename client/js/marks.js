@@ -13,7 +13,8 @@ let students = [];
 let state = { page: 1, limit: 15, search: "", onlyRisk: false, onlyAnomaly: false, term: "" };
 let remTargetId = null;
 let termFilterLocked = false;
-const INTERNAL_SUM_RISK = 16;
+const INTERNAL_REMEDIAL_RISK = 9;
+const FINAL_FAIL_RISK = 16;
 
 function isPastDeadline() {
   if (!settings.marksDeadline) return false;
@@ -391,17 +392,19 @@ function renderRows(rows) {
     const anom = m.anomaly ? `<span class="badge warn">Anomaly</span>` : "";
     const i1 = m.internal1 != null ? m.internal1 : (m.mid1 || 0) + (m.assignment || 0);
     const i2 = m.internal2 != null ? m.internal2 : (m.mid2 || 0) + (m.lab || 0);
-    const internalSum = Math.round((Number(i1) + Number(i2)) * 10) / 10;
-    const internalLow = internalSum > 0 && internalSum < INTERNAL_SUM_RISK;
+    const internal1Low = Number(i1) > 0 && Number(i1) < INTERNAL_REMEDIAL_RISK;
+    const internal2Low = Number(i2) > 0 && Number(i2) < INTERNAL_REMEDIAL_RISK;
     const finalNum = Number(m.final);
-    const finalLow = Number.isFinite(finalNum) && finalNum < INTERNAL_SUM_RISK;
+    const finalLow = Number.isFinite(finalNum) && finalNum < FINAL_FAIL_RISK;
     const risk =
-      m.atRisk || internalLow || finalLow
+      m.atRisk || internal1Low || internal2Low || finalLow
         ? `<span class="badge bad">At risk</span>${
             finalLow
-              ? ` <span class="hint">final &lt; ${INTERNAL_SUM_RISK}</span>`
-              : internalLow
-                ? ` <span class="hint">I1+I2 ${internalSum} &lt; ${INTERNAL_SUM_RISK}</span>`
+              ? ` <span class="hint">Fail: final &lt; ${FINAL_FAIL_RISK}</span>`
+              : internal1Low
+                ? ` <span class="hint">Remedial: I1 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
+                : internal2Low
+                  ? ` <span class="hint">Remedial: I2 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
                 : ""
           }`
         : `<span class="badge good">OK</span>`;

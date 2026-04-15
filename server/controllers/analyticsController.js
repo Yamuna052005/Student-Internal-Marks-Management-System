@@ -2,7 +2,10 @@ import { Marks } from "../models/Marks.js";
 import { Student } from "../models/Student.js";
 import { getSettingsDoc } from "../utils/ensureSettings.js";
 import { computeCombinedAtRisk } from "../utils/calcMarks.js";
-import { computeStudentRiskInsights } from "../utils/studentRiskInsights.js";
+import {
+  computeStudentRiskInsights,
+  PREDICTIVE_RISK_THRESHOLD,
+} from "../utils/studentRiskInsights.js";
 import { resolveTermScope, applyTermMongoFilter, normalizeMarkTerms, resolveMarkTermForApi } from "../utils/termScope.js";
 import { resolveRemedialActorIdStrict, syncAutoRemedialsFromDatabase } from "./remedialController.js";
 
@@ -27,13 +30,17 @@ function resolveTrendStudentScope(req) {
 export async function summary(req, res, next) {
   try {
     const settings = await getSettingsDoc();
-    const passMark = settings.passMark ?? 40;
+    const passMark = settings.passMark ?? 16;
 
     let match = {};
     if (req.user.role === "student") {
       if (!req.user.studentRef) {
         return res.json({
-          settings: { passMark, riskThreshold: settings.riskThreshold },
+          settings: {
+            passMark,
+            riskThreshold: settings.riskThreshold,
+            predictiveThreshold: PREDICTIVE_RISK_THRESHOLD,
+          },
           total: 0,
           riskCount: 0,
           anomalyCount: 0,
@@ -153,7 +160,7 @@ export async function summary(req, res, next) {
 
     const studentRiskInsights = computeStudentRiskInsights(marksForInsights, {
       passMark,
-      riskThreshold: settings.riskThreshold,
+      predictiveThreshold: PREDICTIVE_RISK_THRESHOLD,
     });
     const predictedHighRiskCount = studentRiskInsights.filter((r) => r.riskBand === "high").length;
 
@@ -174,7 +181,11 @@ export async function summary(req, res, next) {
     normalizeMarkTerms(marksForInsights, settings);
 
     res.json({
-      settings: { passMark, riskThreshold: settings.riskThreshold },
+      settings: {
+        passMark,
+        riskThreshold: settings.riskThreshold,
+        predictiveThreshold: PREDICTIVE_RISK_THRESHOLD,
+      },
       total,
       riskCount,
       anomalyCount,

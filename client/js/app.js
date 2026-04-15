@@ -1,4 +1,5 @@
 import { getUser } from "./api.js";
+import { logout } from "./auth.js";
 
 export function qs(sel, root = document) {
   return root.querySelector(sel);
@@ -182,6 +183,17 @@ export async function initShell({ active }) {
       .map((s) => s.trim());
 
     el.style.display = allow.includes(u.role) ? "" : "none";
+  });
+
+  qsa("[data-theme-toggle]").forEach(initThemeToggle);
+  initMobileDrawer(qs("#app"));
+  qsa("[data-logout]").forEach((btn) => {
+    if (btn.dataset.logoutInit === "1") return;
+    btn.dataset.logoutInit = "1";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
+    });
   });
 }
 // --- High-End UI Logic ---
