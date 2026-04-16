@@ -13,6 +13,7 @@ let students = [];
 let state = { page: 1, limit: 15, search: "", onlyRisk: false, onlyAnomaly: false, term: "" };
 let remTargetId = null;
 let termFilterLocked = false;
+let marksApproval = null;
 const INTERNAL_REMEDIAL_RISK = 9;
 const FINAL_FAIL_RISK = 16;
 
@@ -23,8 +24,48 @@ function isPastDeadline() {
 
 function canEditMarks() {
   if (role === "admin") return true;
-  if (role === "faculty") return !isPastDeadline();
+  if (role === "faculty") return !isPastDeadline() || marksApproval?.status === "approved";
   return false;
+}
+
+async function refreshApprovalState() {
+  if (role !== "faculty") return;
+  const data = await api("/marks-approvals").catch(() => ({ approvals: [] }));
+  marksApproval = (data.approvals || [])[0] || null;
+}
+
+function renderLockState() {
+  const lb = qs("#lockBanner");
+  const requestWrap = qs("#approvalRequestWrap");
+  const requestBtn = qs("#btnRequestApproval");
+  if (!lb) return;
+
+  if (role !== "faculty" || !isPastDeadline()) {
+    lb.hidden = true;
+    requestWrap?.setAttribute("hidden", "hidden");
+    qs("#marksCard")?.classList.remove("locked");
+    return;
+  }
+
+  lb.hidden = false;
+  requestWrap?.removeAttribute("hidden");
+
+  if (marksApproval?.status === "approved") {
+    lb.textContent = "Deadline passed - admin approved marks entry";
+    if (requestBtn) requestBtn.disabled = true;
+    qs("#marksCard")?.classList.remove("locked");
+    return;
+  }
+
+  if (marksApproval?.status === "pending") {
+    lb.textContent = "Deadline passed - approval request pending with admin";
+    if (requestBtn) requestBtn.disabled = true;
+  } else {
+    lb.textContent = "Deadline passed - request admin approval to continue";
+    if (requestBtn) requestBtn.disabled = false;
+  }
+
+  qs("#marksCard")?.classList.add("locked");
 }
 
 function displayTerm(m) {
@@ -46,11 +87,13 @@ function initialOf(name) {
 async function boot() {
   try {
     settings = await api("/settings");
+    await refreshApprovalState();
     if (role === "faculty" && isPastDeadline()) {
       const lb = qs("#lockBanner");
       if (lb) { lb.hidden = false; lb.textContent = "Deadline passed — faculty locked"; }
       qs("#marksCard")?.classList.add("locked");
     }
+    renderLockState();
     if (role === "student") qs("#marksCard")?.classList.remove("locked");
 
     if (role === "admin" || role === "faculty") {
@@ -208,6 +251,18 @@ function wire() {
     openMarkModal();
   });
 
+  qs("#btnRequestApproval")?.addEventListener("click", async () => {
+    try {
+      const requestNote = window.prompt("Reason for admin approval:", "Need to enter marks after deadline.") || "";
+      await api("/marks-approvals", { method: "POST", body: JSON.stringify({ requestNote }) });
+      await refreshApprovalState();
+      renderLockState();
+      toast("good", "Requested", "Approval request sent to admin.");
+    } catch (e) {
+      toast("bad", "Request failed", e.message);
+    }
+  });
+
   qs("#mSave")?.addEventListener("click", saveNewMark);
 
   qsa("#modalMark [data-close]").forEach((b) =>
@@ -345,6 +400,8 @@ async function saveNewMark() {
     if (e?.status === 409 || /already exist/i.test(msg)) {
       toast("bad", "Duplicate", "Row already exists for this student + subject + term.");
     } else if (e?.status === 403 || /locked|deadline/i.test(msg)) {
+      await refreshApprovalState().catch(() => {});
+      renderLockState();
       toast("bad", "Locked", msg);
     } else {
       toast("bad", "Error", msg);

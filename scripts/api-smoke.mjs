@@ -317,10 +317,19 @@ async function main() {
     const { status, data } = await req("/api/remedials", {
       method: "POST",
       headers: authHeader(facultyT),
-      json: { marksId: newMarkId, afterFinal: 55, notes: "smoke remedial" },
+      json: { marksId: newMarkId, afterFinal: 25, notes: "smoke remedial" },
     });
     if (status === 201 && data?.remedial) ok("POST /api/remedials -> 201");
     else fail("POST remedial", `${status} ${JSON.stringify(data)}`);
+  }
+  {
+    const { status, data } = await req("/api/remedials", {
+      method: "POST",
+      headers: authHeader(facultyT),
+      json: { marksId: newMarkId, afterFinal: 55, notes: "invalid remedial" },
+    });
+    if (status === 400) ok("POST /api/remedials invalid -> 400");
+    else fail("POST remedial invalid", `${status} ${JSON.stringify(data)}`);
   }
 
   // Activity

@@ -15,6 +15,9 @@ initShell({ active: "dashboard" });
 const user = getUser();
 const isStudent = user?.role === "student";
 const isAdmin = user?.role === "admin";
+const isFaculty = user?.role === "faculty";
+let dashboardSettings = {};
+let dashboardApproval = null;
 
 function esc(s) {
   return String(s ?? "")
@@ -303,10 +306,120 @@ function renderActivity(el, items) {
   }).join("");
 }
 
+function isPastDeadline() {
+  if (!dashboardSettings?.marksDeadline) return false;
+  return Date.now() > new Date(dashboardSettings.marksDeadline).getTime();
+}
+
+function formatDeadline(value) {
+  if (!value) return "No deadline configured.";
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) return "No deadline configured.";
+  return `Current marks deadline: ${when.toLocaleString()}`;
+}
+
+function renderFacultyApprovalPanel() {
+  const section = document.getElementById("facultyApprovalSection");
+  const message = document.getElementById("facultyApprovalMessage");
+  const status = document.getElementById("facultyApprovalStatus");
+  const meta = document.getElementById("facultyApprovalMeta");
+  const button = document.getElementById("facultyApprovalBtn");
+  const marksLink = document.getElementById("facultyApprovalMarksLink");
+  if (!section || !message || !status || !meta || !button || !marksLink) return;
+
+  if (!isFaculty) {
+    section.remove();
+    return;
+  }
+
+  meta.textContent = formatDeadline(dashboardSettings?.marksDeadline);
+  marksLink.style.pointerEvents = "";
+  marksLink.style.opacity = "";
+  marksLink.removeAttribute("aria-disabled");
+
+  if (!dashboardSettings?.marksDeadline) {
+    message.textContent = "Admin has not set a marks deadline yet. You can continue normal marks entry.";
+    status.textContent = "Open";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Deadline Not Set";
+    marksLink.classList.remove("disabled");
+    return;
+  }
+
+  if (!isPastDeadline()) {
+    message.textContent = "Marks entry is open. You only need admin approval after the deadline passes.";
+    status.textContent = "Open";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Available After Deadline";
+    marksLink.classList.remove("disabled");
+    return;
+  }
+
+  if (dashboardApproval?.status === "approved") {
+    message.textContent = "Your post-deadline marks request is approved. You can continue in the Marks page.";
+    status.textContent = "Approved";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Approved";
+    marksLink.classList.remove("disabled");
+    return;
+  }
+
+  if (dashboardApproval?.status === "pending") {
+    message.textContent = "Your request is waiting for admin review.";
+    status.textContent = "Pending";
+    status.className = "trend-chip warn";
+    button.disabled = true;
+    button.textContent = "Request Pending";
+    marksLink.classList.remove("disabled");
+    return;
+  }
+
+  if (dashboardApproval?.status === "rejected") {
+    message.textContent = "Your last request was rejected. You can send a fresh request for the current deadline.";
+    status.textContent = "Rejected";
+    status.className = "trend-chip bad";
+    button.disabled = false;
+    button.textContent = "Send Request Again";
+    marksLink.style.pointerEvents = "none";
+    marksLink.style.opacity = "0.55";
+    marksLink.setAttribute("aria-disabled", "true");
+    return;
+  }
+
+  message.textContent = "Marks entry is locked after the deadline. Send a request here and wait for admin approval.";
+  status.textContent = "Locked";
+  status.className = "trend-chip bad";
+  button.disabled = false;
+  button.textContent = "Send Request";
+  marksLink.style.pointerEvents = "none";
+  marksLink.style.opacity = "0.55";
+  marksLink.setAttribute("aria-disabled", "true");
+}
+
+async function requestFacultyApproval() {
+  const button = document.getElementById("facultyApprovalBtn");
+  if (!button || button.disabled) return;
+  try {
+    button.disabled = true;
+    const requestNote = window.prompt("Reason for admin approval:", "Need to enter marks after deadline.") || "";
+    await api("/marks-approvals", { method: "POST", body: JSON.stringify({ requestNote }) });
+    const approvalsData = await api("/marks-approvals").catch(() => ({ approvals: [] }));
+    dashboardApproval = (approvalsData.approvals || [])[0] || null;
+    renderFacultyApprovalPanel();
+    toast("good", "Requested", "Approval request sent to admin.");
+  } catch (e) {
+    button.disabled = false;
+    toast("bad", "Request failed", e.message || "Could not send request.");
+  }
+}
+
 async function boot() {
   try {
     const me = getUser();
-    const studentRef = me?.studentRef || me?.studentId;
+    const studentRef = me?.studentId || (typeof me?.studentRef === "string" ? me.studentRef : me?.studentRef?._id);
     const requests = [
       api("/analytics/summary").catch(() => ({})),
       isAdmin ? api("/activity?limit=20").catch(() => ({ activity: [] })) : Promise.resolve({ activity: [] }),
@@ -314,8 +427,12 @@ async function boot() {
       isStudent && studentRef
         ? api(`/students/${studentRef}/academic-report`).catch(() => null)
         : Promise.resolve(null),
+      (isFaculty || isAdmin) ? api("/settings").catch(() => ({})) : Promise.resolve({}),
+      isFaculty ? api("/marks-approvals").catch(() => ({ approvals: [] })) : Promise.resolve({ approvals: [] }),
     ];
-    const [summary, activityData, studentsData, academicReport] = await Promise.all(requests);
+    const [summary, activityData, studentsData, academicReport, settingsData, approvalsData] = await Promise.all(requests);
+    dashboardSettings = settingsData || {};
+    dashboardApproval = (approvalsData?.approvals || [])[0] || null;
 
     const studentName = me?.name || "Student";
     const recordsCount = Number(summary?.total ?? 0);
@@ -380,6 +497,7 @@ async function boot() {
       renderStudentRemedials(document.getElementById("studentRemedialList"), academicReport?.remedials);
 
       // Hide staff-only sections
+      document.getElementById("facultyApprovalSection")?.remove();
       document.getElementById("staffHighlights")?.remove();
       document.getElementById("resultsSection")?.remove();
       document.getElementById("predictiveSection")?.remove();
@@ -420,6 +538,9 @@ async function boot() {
       } else {
         document.getElementById("activitySection")?.remove();
       }
+
+      renderFacultyApprovalPanel();
+      document.getElementById("facultyApprovalBtn")?.addEventListener("click", requestFacultyApproval);
 
       // Hide student-only section
       document.getElementById("studentSection")?.remove();

@@ -5,18 +5,26 @@ export function normalizeUser(u) {
   if (!u) return u;
   const rawId = u.id ?? u._id;
   const idStr = rawId != null ? String(rawId) : undefined;
-  const ref = u.studentRef ?? u.studentId;
+  const profile = u.studentProfile && typeof u.studentProfile === "object" ? u.studentProfile : null;
+  const ref = u.studentRef ?? u.studentId ?? profile?._id;
   let studentLink;
-  if (ref && typeof ref === "object" && ref._id != null) {
+  let studentRefValue;
+  if (profile?._id != null) {
+    studentLink = String(profile._id);
+    studentRefValue = { ...profile, _id: studentLink };
+  } else if (ref && typeof ref === "object" && ref._id != null) {
     studentLink = String(ref._id);
+    studentRefValue = { ...ref, _id: studentLink };
   } else if (ref != null) {
     studentLink = String(ref);
+    studentRefValue = studentLink;
   }
   return {
     ...u,
     id: idStr,
     _id: idStr,
-    ...(studentLink ? { studentRef: studentLink, studentId: studentLink } : {}),
+    ...(profile ? { studentProfile: { ...profile, _id: String(profile._id) } } : {}),
+    ...(studentLink ? { studentRef: studentRefValue, studentId: studentLink } : {}),
   };
 }
 

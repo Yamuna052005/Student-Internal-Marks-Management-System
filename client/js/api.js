@@ -111,6 +111,73 @@ async function mockApi(path, options = {}) {
     return db.settings;
   }
 
+  if (cleanPath.startsWith("/marks-approvals")) {
+    const user = getUser();
+    db.marksApprovals = db.marksApprovals || [];
+    const approvalId = cleanPath.split("/")[2];
+
+    if (cleanPath === "/marks-approvals" && String(options.method || "GET").toUpperCase() === "POST") {
+      const payload = JSON.parse(options.body || "{}");
+      const deadline = db.settings?.marksDeadline ? new Date(db.settings.marksDeadline) : null;
+      if (!deadline || Number.isNaN(deadline.getTime()) || Date.now() <= deadline.getTime()) {
+        throw new Error("Approval requests open only after the marks deadline.");
+      }
+      const existing = db.marksApprovals.find(
+        (item) =>
+          item.faculty === user?._id &&
+          item.deadlineSnapshot === (deadline ? deadline.toISOString() : null)
+      );
+      if (existing) {
+        throw new Error(
+          existing.status === "approved"
+            ? "An approved admin override already exists for this deadline."
+            : existing.status === "pending"
+              ? "An approval request is already pending for this deadline."
+              : "An approval request already exists for this deadline."
+        );
+      }
+      const row = {
+        _id: "apr" + Date.now(),
+        faculty: user?._id,
+        facultyUser: user ? { _id: user._id, name: user.name, username: user.username } : null,
+        status: "pending",
+        requestNote: String(payload.requestNote || "").trim(),
+        reviewNote: "",
+        reviewedBy: null,
+        reviewedAt: null,
+        deadlineSnapshot: deadline ? deadline.toISOString() : null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.marksApprovals.push(row);
+      saveDb(db);
+      return { approval: row };
+    }
+
+    if (approvalId && String(options.method || "GET").toUpperCase() === "PATCH") {
+      const payload = JSON.parse(options.body || "{}");
+      const idx = db.marksApprovals.findIndex((item) => item._id === approvalId);
+      if (idx < 0) throw new Error("Approval request not found");
+      db.marksApprovals[idx] = {
+        ...db.marksApprovals[idx],
+        status: payload.status,
+        reviewNote: String(payload.reviewNote || "").trim(),
+        reviewedBy: user ? { _id: user._id, name: user.name, username: user.username } : null,
+        reviewedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      saveDb(db);
+      return { approval: db.marksApprovals[idx] };
+    }
+
+    const approvals = (user?.role === "admin" ? db.marksApprovals : db.marksApprovals.filter((item) => item.faculty === user?._id))
+      .map((item) => ({
+        ...item,
+        faculty: item.facultyUser || (db.users || []).find((u) => u._id === item.faculty) || null,
+      }));
+    return { approvals };
+  }
+
   // ── USERS ─────────────────────────────────────────────────────────────────
   if (cleanPath.startsWith("/users")) {
     if (options.method === "POST") {
@@ -318,9 +385,32 @@ async function mockApi(path, options = {}) {
   // ── MARKS ─────────────────────────────────────────────────────────────────
   if (cleanPath.startsWith("/marks")) {
     const markId = cleanPath.split("/")[2]; // /marks/:id
+    const user = getUser();
+    const deadline = db.settings?.marksDeadline ? new Date(db.settings.marksDeadline) : null;
+    const facultyApproved =
+      user?.role === "faculty" &&
+      !!(db.marksApprovals || []).find(
+        (item) =>
+          item.faculty === user._id &&
+          item.status === "approved" &&
+          item.deadlineSnapshot === (deadline && !Number.isNaN(deadline.getTime()) ? deadline.toISOString() : null)
+      );
+    const locked =
+      user?.role === "faculty" &&
+      deadline &&
+      !Number.isNaN(deadline.getTime()) &&
+      Date.now() > deadline.getTime() &&
+      !facultyApproved;
+
+    const ensureMarksEditable = () => {
+      if (locked) {
+        const err = new Error("Marks entry is locked after the deadline. Request admin approval to continue.");
+        err.status = 403;
+        throw err;
+      }
+    };
 
     if (cleanPath === "/marks/meta/terms") {
-      const user = getUser();
       let list = db.marks || [];
       const studentScope = user?.studentId || user?.studentRef;
       if (user?.role === "student" && studentScope) {
@@ -331,6 +421,7 @@ async function mockApi(path, options = {}) {
     }
 
     if (cleanPath === "/marks/bulk" && options.method === "POST") {
+      ensureMarksEditable();
       const payload = JSON.parse(options.body || "{}");
       const items = payload.marks || [];
       if (!Array.isArray(items) || !items.length) throw new Error("marks array required");
@@ -399,6 +490,7 @@ async function mockApi(path, options = {}) {
     }
 
     if (cleanPath === "/marks" && options.method === "POST") {
+      ensureMarksEditable();
       const payload = JSON.parse(options.body || "{}");
       const calc = calculateFinal(payload);
       const settings = db.settings || {};
@@ -428,6 +520,7 @@ async function mockApi(path, options = {}) {
     }
 
     if (options.method === "PATCH" && markId) {
+      ensureMarksEditable();
       const payload = JSON.parse(options.body || "{}");
       let patched = null;
       db.marks = (db.marks || []).map(m => {
@@ -451,6 +544,7 @@ async function mockApi(path, options = {}) {
     }
 
     if (options.method === "DELETE" && markId) {
+      ensureMarksEditable();
       db.marks = (db.marks || []).filter(m => m._id !== markId);
       saveDb(db);
       return { ok: true };

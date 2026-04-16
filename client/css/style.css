@@ -510,18 +510,64 @@ ul { list-style: none; }
   -webkit-overflow-scrolling: touch;
 }
 
+.dashboard-main,
+.marks-main {
+  max-width: 1500px !important;
+  margin: 0 auto !important;
+}
+
+.dashboard-main > section,
+.marks-main > header,
+.marks-main > .marks-page-layout {
+  width: 100%;
+}
+
 .marks-page-layout {
   display: grid;
   grid-template-columns: minmax(240px, 300px) 1fr;
   gap: 1.5rem;
   align-items: start;
 }
+.dashboard-main .grid.cols-4,
+.dashboard-main .grid.cols-2,
+.dashboard-main .grid.cols-1 {
+  align-items: stretch;
+}
+.dashboard-main .card,
+.marks-main .card {
+  height: 100%;
+}
+.topbar-right {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.topbar-right > * {
+  flex-shrink: 0;
+}
+.marks-main .marks-page-layout > aside,
+.marks-main .marks-page-layout > section {
+  min-width: 0;
+}
+.marks-main #marksCard {
+  width: 100%;
+}
+.marks-main .marks-table-scroll table {
+  min-width: 920px;
+}
 @media (max-width: 1024px) {
+  .dashboard-main,
+  .marks-main {
+    max-width: 100% !important;
+  }
   .marks-page-layout {
     grid-template-columns: 1fr;
   }
   .marks-filter-sticky {
     position: static !important;
+  }
+  .dashboard-main .grid.cols-2,
+  .dashboard-main .grid.cols-1 {
+    grid-template-columns: 1fr;
   }
 }
 .marks-table-scroll {
@@ -1004,6 +1050,7 @@ select.input:not([multiple]) {
   .stats-row { flex-direction: column; gap: 3rem; }
   .landing-nav { padding: 0 2rem; }
   .topbar { padding: 0 1.25rem; }
+  .main { padding: 1.25rem 1rem 1.75rem; }
 
   .app-shell > .sidebar {
     position: fixed;
@@ -1023,6 +1070,18 @@ select.input:not([multiple]) {
   .app-shell.sidebar-open > .sidebar {
     transform: translateX(0);
     box-shadow: 8px 0 40px rgba(0, 0, 0, 0.35);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-main .kpi-value-row {
+    align-items: flex-start;
+  }
+
+  .dashboard-main #heroStatus,
+  .marks-main #lockBanner {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -1277,4 +1336,35 @@ select.input:not([multiple]) {
   .landing-hero-preview:hover .dashboard-mockup {
     transform: none;
   }
+}
+.landing-page {
+  background: url('../assests/banner_arch.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+.landing-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: -1;
+}
+
+.landing-page .app-content {
+  background: transparent;
+}
+
+.student-search-match td {
+  background: rgba(129, 140, 248, 0.08);
+}
+
+.student-search-match:hover td {
+  background: rgba(129, 140, 248, 0.14) !important;
+}
+
+mark.search-hit {
+  background: rgba(245, 158, 11, 0.22);
+  color: var(--text-main);
+  border-radius: 4px;
+  padding: 0.05rem 0.22rem;
 }

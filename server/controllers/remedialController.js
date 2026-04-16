@@ -221,6 +221,12 @@ export async function createRemedial(req, res, next) {
 
     const beforeFinal = mark.final;
     const after = Number(afterFinal);
+    if (!Number.isFinite(after)) {
+      return res.status(400).json({ message: "afterFinal must be a valid number" });
+    }
+    if (after < 0 || after > 25) {
+      return res.status(400).json({ message: "afterFinal must be between 0 and 25" });
+    }
     const improvement = Math.round((after - beforeFinal) * 10) / 10;
 
     const actorId = await resolveRemedialActorIdStrict(req);

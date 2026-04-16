@@ -20,6 +20,18 @@ function initialOf(name) {
   return String(name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
+function escapeRegex(value) {
+  return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightMatch(value, query) {
+  const text = String(value ?? "");
+  const q = String(query ?? "").trim();
+  if (!q) return esc(text);
+  const re = new RegExp(`(${escapeRegex(q)})`, "ig");
+  return esc(text).replace(re, '<mark class="search-hit">$1</mark>');
+}
+
 function renderHistory(report) {
   const body = qs("#historyBody");
   if (!body) return;
@@ -77,20 +89,27 @@ async function load() {
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
+  const query = state.search.trim();
 
   qs("#tbody").innerHTML = rows.length
-    ? rows.map(student => `<tr data-id="${student._id}">
+    ? rows.map(student => {
+        const matched =
+          query &&
+          [student.name, student.rollNumber, student.section]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(query.toLowerCase()));
+        return `<tr data-id="${student._id}" class="${matched ? "student-search-match" : ""}">
         <td>
           <div class="table-user">
             <div class="table-avatar">${initialOf(student.name)}</div>
             <div class="table-user-copy">
-              <strong>${esc(student.name)}</strong>
+              <strong>${highlightMatch(student.name, query)}</strong>
               <span>Student profile</span>
             </div>
           </div>
         </td>
-        <td><span class="code-pill">${esc(student.rollNumber)}</span></td>
-        <td><span class="badge">${esc(student.section)}</span></td>
+        <td><span class="code-pill">${highlightMatch(student.rollNumber, query)}</span></td>
+        <td><span class="badge">${highlightMatch(student.section, query)}</span></td>
         <td>
           <div class="table-actions">
             <button type="button" class="btn small ghost" data-history="${student._id}">History</button>
@@ -100,7 +119,8 @@ async function load() {
             ` : ""}
           </div>
         </td>
-      </tr>`).join("")
+      </tr>`;
+      }).join("")
     : '<tr><td colspan="4"><div class="empty">No students found.</div></td></tr>';
 
   qs("#tbody").querySelectorAll("[data-history]").forEach(button =>

@@ -3,6 +3,21 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { logActivity } from "../utils/activity.js";
 
+async function buildAuthUser(userId) {
+  const user = await User.findById(userId)
+    .select("-passwordHash")
+    .populate("studentRef", "name rollNumber section createdBy")
+    .lean();
+  if (!user) return null;
+  const studentDoc = user.studentRef && typeof user.studentRef === "object" ? user.studentRef : null;
+  return {
+    ...user,
+    id: user._id,
+    studentRef: studentDoc?._id != null ? String(studentDoc._id) : user.studentRef != null ? String(user.studentRef) : undefined,
+    ...(studentDoc ? { studentProfile: { ...studentDoc, _id: String(studentDoc._id) } } : {}),
+  };
+}
+
 function signToken(userId, role) {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET not configured");
@@ -47,7 +62,8 @@ export async function login(req, res, next) {
 
 export async function me(req, res, next) {
   try {
-    res.json({ user: req.user });
+    const user = await buildAuthUser(req.user?._id);
+    res.json({ user: user || req.user });
   } catch (e) {
     next(e);
   }

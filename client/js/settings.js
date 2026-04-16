@@ -17,6 +17,7 @@ let state = {
   settings: {},
   users: [],
   activity: [],
+  approvals: [],
 };
 
 function esc(value) {
@@ -38,25 +39,29 @@ async function boot() {
       renderProfile();
       qs("#gradingSection")?.remove();
       qs("#activitySection")?.remove();
+      qs("#approvalSection")?.remove();
       qs("aside[data-role='admin']")?.remove();
       wireEvents();
       return;
     }
 
-    const [settings, usersData, activityData] = await Promise.all([
+    const [settings, usersData, activityData, approvalsData] = await Promise.all([
       api("/settings"),
       api("/users"),
       api("/activity"),
+      api("/marks-approvals"),
     ]);
 
     state.settings = settings;
     state.users = usersData.users || [];
     state.activity = activityData.activity || [];
+    state.approvals = approvalsData.approvals || [];
 
     renderProfile();
     renderSettings();
     renderUsers();
     renderActivity();
+    renderApprovals();
     wireEvents();
   } catch (err) {
     console.error("SIMMS Settings Error:", err);
@@ -209,6 +214,73 @@ function renderActivity() {
       </div>
     </div>
   `).join("");
+}
+
+function renderApprovals() {
+  const root = qs("#approvalList");
+  if (!root) return;
+
+  if (!state.approvals.length) {
+    root.innerHTML = '<div class="empty">No approval requests yet.</div>';
+    return;
+  }
+
+  root.innerHTML = state.approvals.map((item) => {
+    const facultyName = item.faculty?.name || "Faculty";
+    const reviewMeta =
+      item.reviewedBy?.name && item.reviewedAt
+        ? `<div class="hint" style="margin-top:0.35rem;">Reviewed by ${esc(item.reviewedBy.name)} on ${new Date(item.reviewedAt).toLocaleString()}</div>`
+        : "";
+    const actions = item.status === "pending"
+      ? `<div class="table-actions" style="margin-top:0.75rem;">
+           <button type="button" class="btn small" data-approve="${item._id}">Approve</button>
+           <button type="button" class="btn small danger" data-reject="${item._id}">Reject</button>
+         </div>`
+      : "";
+
+    return `
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <strong>${esc(facultyName)}</strong>
+            <div class="hint">@${esc(item.faculty?.username || "")}</div>
+          </div>
+          <span class="badge ${item.status === "approved" ? "good" : item.status === "rejected" ? "bad" : "warn"}">${esc(item.status)}</span>
+        </div>
+        <div class="hint" style="margin-top:0.75rem;">${esc(item.requestNote || "No note provided.")}</div>
+        ${item.reviewNote ? `<div class="hint" style="margin-top:0.35rem;">Admin note: ${esc(item.reviewNote)}</div>` : ""}
+        ${reviewMeta}
+        ${actions}
+      </div>
+    `;
+  }).join("");
+
+  qsa("[data-approve]").forEach((button) => {
+    button.onclick = () => reviewApproval(button.dataset.approve, "approved");
+  });
+  qsa("[data-reject]").forEach((button) => {
+    button.onclick = () => reviewApproval(button.dataset.reject, "rejected");
+  });
+}
+
+async function reviewApproval(id, status) {
+  const reviewNote = window.prompt(
+    status === "approved" ? "Admin note for approval:" : "Reason for rejection:",
+    ""
+  ) || "";
+  try {
+    const result = await api(`/marks-approvals/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, reviewNote }),
+    });
+    state.approvals = state.approvals.map((item) =>
+      String(item._id) === String(id) ? result.approval : item
+    );
+    renderApprovals();
+    toast("good", "Updated", `Request ${status}.`);
+  } catch (e) {
+    toast("bad", "Error", e.message || "Failed to update request.");
+  }
 }
 
 async function deleteUser(id) {

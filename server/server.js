@@ -13,6 +13,8 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import remedialRoutes from "./routes/remedialRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
+import marksApprovalRoutes from "./routes/marksApprovalRoutes.js";
+import { MarksApproval } from "./models/MarksApproval.js";
 import { ensureDefaultSettings } from "./utils/ensureSettings.js";
 import { migrateMarksTermAndIndexes } from "./utils/migrateMarksTerm.js";
 import { seedAdminIfNeeded } from "./seed.js";
@@ -40,6 +42,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/remedials", remedialRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/marks-approvals", marksApprovalRoutes);
 
 app.use(express.static(clientDir));
 
@@ -50,6 +53,7 @@ async function boot() {
   await connectDb(uri);
   await ensureDefaultSettings();
   await migrateMarksTermAndIndexes().catch((err) => console.error("Marks term migration:", err));
+  await MarksApproval.syncIndexes().catch((err) => console.error("MarksApproval index sync:", err.message || err));
   await seedAdminIfNeeded();
   app.listen(PORT, () => {
     console.log(`SIMMS API + client on http://localhost:${PORT}`);
