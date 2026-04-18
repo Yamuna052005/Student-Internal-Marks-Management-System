@@ -13,11 +13,37 @@ try {
 initShell({ active: "dashboard" });
 
 const user = getUser();
-const isStudent = user?.role === "student";
 const isAdmin = user?.role === "admin";
 const isFaculty = user?.role === "faculty";
+const isStudent = user?.role === "student";
+
+const INTERNAL_RISK_TH = 9;
+const FINAL_FAIL_TH = 16;
+
 let dashboardSettings = {};
 let dashboardApproval = null;
+let studentReport = null;
+let summary = {
+  total: 0,
+  riskCount: 0,
+  anomalyCount: 0,
+  top: [],
+  low: [],
+  bySubject: [],
+  passFail: { pass: 0, fail: 0 },
+  avgScore: 0,
+  studentRiskInsights: [],
+  predictedHighRiskCount: 0,
+};
+let marks = [];
+let students = [];
+let remedials = [];
+let grievances = [];
+let activity = [];
+let grievanceFilters = {
+  status: "all",
+  search: "",
+};
 
 function esc(s) {
   return String(s ?? "")
@@ -30,225 +56,203 @@ function initialOf(name) {
   return String(name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
-function setEl(id, text) {
+function setText(id, value) {
   const el = document.getElementById(id);
-  if (el) el.textContent = text;
+  if (el) el.textContent = value;
 }
 
-function setTrend(id, text, tone = "") {
+function setTrend(id, value, tone = "") {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = text;
+  el.textContent = value;
   el.className = `trend-chip${tone ? ` ${tone}` : ""}`;
 }
 
-const INTERNAL_RISK_TH = 9;
-const FINAL_FAIL_TH = 16;
-
-function academicFlowArrow() {
-  return `<span class="academic-flow-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h12"/><path d="M13 6l6 6-6 6"/></svg></span>`;
+function currentName() {
+  return isAdmin ? "Administrator Dashboard" : isFaculty ? "Faculty Dashboard" : "Student Dashboard";
 }
 
-function renderAcademicReportTree(el, report) {
-  if (!el) return;
-  const years = report?.years;
-  if (!years || !years.length) {
-    el.innerHTML = `<div class="empty">No marks recorded yet.</div>`;
-    return;
+function getFinal(mark) {
+  const n = Number(mark?.final);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getCurrentStudentId() {
+  const ref = user?.studentRef ?? user?.studentId;
+  if (ref && typeof ref === "object" && ref._id != null) return String(ref._id);
+  return ref != null ? String(ref) : "";
+}
+
+function resolveMarkReleaseDate(mark) {
+  const raw = mark?.releasedAt || mark?.createdAt || mark?.updatedAt;
+  const date = raw ? new Date(raw) : null;
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+function resolveGrievanceDeadline(mark) {
+  const release = resolveMarkReleaseDate(mark);
+  if (!release) return null;
+  return new Date(release.getTime() + 3 * 24 * 60 * 60 * 1000);
+}
+
+function grievanceForMark(markId) {
+  return (grievances || []).find((item) => String(item.marks?._id || item.marks || item.marksId || "") === String(markId));
+}
+
+function grievanceStatusLabel(status) {
+  if (status === "resolved") return "Resolved";
+  if (status === "rejected") return "Rejected";
+  if (status === "under_review") return "Under review";
+  return "Pending";
+}
+
+function grievanceStatusTone(status) {
+  if (status === "resolved") return "good";
+  if (status === "rejected") return "bad";
+  if (status === "under_review") return "warn";
+  return "";
+}
+
+function grievanceStudentLabel(grievance) {
+  const student = grievance?.student || {};
+  const roll = student.rollNumber ? ` · ${student.rollNumber}` : "";
+  const section = student.section ? ` · Sec ${student.section}` : "";
+  return `${student.name || "Unknown student"}${roll}${section}`;
+}
+
+function isOpenGrievance(grievance) {
+  return grievance && ["pending", "under_review"].includes(String(grievance.status || ""));
+}
+
+function selectedGrievanceMark() {
+  const select = document.getElementById("grievanceMarkSelect");
+  if (!select) return "";
+  return String(select.value || "");
+}
+
+function isStudentGrievanceOpen(mark) {
+  const deadline = resolveGrievanceDeadline(mark);
+  return !!deadline && Date.now() <= deadline.getTime();
+}
+
+function formatDateTime(dateLike) {
+  if (!dateLike) return "—";
+  const d = new Date(dateLike);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
+function markGrievanceLabel(mark) {
+  const deadline = resolveGrievanceDeadline(mark);
+  const status = grievanceForMark(mark?._id);
+  const final = getFinal(mark);
+  const parts = [mark?.subject || "Subject", mark?.term || ""].filter(Boolean).join(" · ");
+  return `${parts} · final ${final}${deadline ? ` · closes ${deadline.toLocaleDateString()}` : ""}${status ? ` · ${grievanceStatusLabel(status.status)}` : ""}`;
+}
+
+function getSubjectAvgRows() {
+  return [...(summary.bySubject || [])].sort((a, b) => Number(b.avgFinal || 0) - Number(a.avgFinal || 0));
+}
+
+function academicYearLabel(index) {
+  return ["First Year", "Second Year", "Third Year", "Final Year"][index] || `Year ${index + 1}`;
+}
+
+function normalizeStudentAcademicFlow() {
+  const years = studentReport?.years || [];
+  const orderedYears = [...years].sort((a, b) => String(a.yearKey || "").localeCompare(String(b.yearKey || ""), undefined, { numeric: true }));
+  const namedYears = orderedYears.slice(0, 4).map((year, index) => {
+    const semesters = [...(year.semesters || [])].sort((a, b) =>
+      String(a.term || "").localeCompare(String(b.term || ""), undefined, { numeric: true, sensitivity: "base" })
+    );
+    const semesterSlots = [0, 1].map((slotIndex) => {
+      const semester = semesters[slotIndex] || null;
+      return semester
+        ? {
+            ...semester,
+            displayName: `Semester ${slotIndex + 1}`,
+          }
+        : {
+            semester: `Semester ${slotIndex + 1}`,
+            displayName: `Semester ${slotIndex + 1}`,
+            term: "",
+            subjects: [],
+          };
+    });
+
+    return {
+      title: academicYearLabel(index),
+      sourceYear: year.year || "",
+      semesters: semesterSlots,
+    };
+  });
+
+  while (namedYears.length < 4) {
+    namedYears.push({
+      title: academicYearLabel(namedYears.length),
+      sourceYear: "",
+      semesters: [
+        { semester: "Semester 1", displayName: "Semester 1", term: "", subjects: [] },
+        { semester: "Semester 2", displayName: "Semester 2", term: "", subjects: [] },
+      ],
+    });
   }
 
-  const legend = `<div class="academic-flow-legend" role="group" aria-label="Report structure">
-    <span class="academic-flow-legend-step">Year</span>${academicFlowArrow()}
-    <span class="academic-flow-legend-step">Semester</span>${academicFlowArrow()}
-    <span class="academic-flow-legend-step">Subjects</span>${academicFlowArrow()}
-    <span class="academic-flow-legend-step">Marks</span>
-  </div>`;
-
-  const body = years
-    .map((y, yi) => {
-      const sems = (y.semesters || [])
-        .map((sem) => {
-          const subjectRows = (sem.subjects || [])
-            .map((m) => {
-              const i1 = Number(m.internal1 ?? 0);
-              const i2 = Number(m.internal2 ?? 0);
-              const sum =
-                m.internalTotal != null ? Number(m.internalTotal) : Math.round((i1 + i2) * 10) / 10;
-              const finNum = Number(m.final);
-              const fin = Number.isFinite(finNum) ? finNum : 0;
-              const finalLow = fin < FINAL_FAIL_TH;
-              const internalLow = m.internalAtRisk === true;
-              const rowAtRisk = finalLow || internalLow;
-              const riskBadge = rowAtRisk
-                ? `<span class="badge bad">At Risk</span>`
-                : `<span class="badge good">OK</span>`;
-              const mid1 = Number(m.mid1 ?? 0);
-              const as1 = Number(m.assignment1 ?? 0);
-              const mid2 = Number(m.mid2 ?? 0);
-              const as2 = Number(m.assignment2 ?? 0);
-              return `<li class="academic-flow-subject">
-            <div class="academic-flow-subject-head">
-              <span class="academic-flow-eyebrow">Subject</span>
-              <strong class="academic-flow-subject-name">${esc(m.subject)}</strong>
-              <div class="academic-flow-subject-side">${riskBadge}<div><strong>${fin}</strong> <span class="hint">final</span></div></div>
-            </div>
-            <div class="academic-flow-marks-block">
-              <span class="academic-flow-eyebrow">Marks</span>
-              <div class="academic-flow-marks-grid">
-                <div><span class="hint">Components</span><br/>Mid-1 ${mid1} · Assign ${as1} · Mid-2 ${mid2} · Assign ${as2}</div>
-                <div><span class="hint">Internals</span><br/>I1 ${i1} · I2 ${i2} · Sum ${sum}</div>
-              </div>
-            </div>
-          </li>`;
-            })
-            .join("");
-
-          return `<div class="academic-flow-semester">
-        <div class="academic-flow-step academic-flow-step--semester">
-          <span class="academic-flow-eyebrow">Semester</span>
-          <div class="academic-flow-step-body">${esc(sem.semester)} <span class="hint">(${esc(sem.term)})</span></div>
-        </div>
-        <div class="academic-flow-nest">
-          <div class="academic-flow-step academic-flow-step--subjects">
-            <span class="academic-flow-eyebrow">Subjects</span>
-          </div>
-          <ol class="academic-flow-subject-list">${subjectRows}</ol>
-        </div>
-      </div>`;
-        })
-        .join("");
-
-      return `<section class="academic-flow-year" aria-labelledby="academic-year-${yi}">
-      <div class="academic-flow-step academic-flow-step--year" id="academic-year-${yi}">
-        <span class="academic-flow-eyebrow">Year</span>
-        <div class="academic-flow-step-body academic-flow-year-value">${esc(y.year)}</div>
-      </div>
-      <div class="academic-flow-nest academic-flow-nest--under-year">${sems}</div>
-    </section>`;
-    })
-    .join("");
-
-  el.innerHTML = `${legend}<div class="academic-flow-body">${body}</div>`;
+  return namedYears;
 }
 
-function renderLowFinalList(el, items, threshold = FINAL_FAIL_TH) {
-  if (!el) return;
-  if (!items || !items.length) {
-    el.innerHTML = `<div class="empty">No subjects with final mark under ${threshold}.</div>`;
-    return;
-  }
-  el.innerHTML = items
-    .map(
-      (m) => `<div class="entity-row">
-    <div class="entity-main"><strong>${esc(m.subject)}</strong><span class="entity-subtitle">${esc(m.term)} · final ${esc(String(m.final))}</span></div>
-    <div class="entity-side"><span class="trend-chip bad">Below ${threshold}</span></div>
-  </div>`
-    )
-    .join("");
-}
-
-function renderInternalRiskList(el, items, threshold = INTERNAL_RISK_TH) {
-  if (!el) return;
-  if (!items || !items.length) {
-    el.innerHTML = `<div class="empty">No subjects with Internal-1 or Internal-2 below ${threshold}.</div>`;
-    return;
-  }
-  el.innerHTML = items
-    .map(
-      (m) => `<div class="entity-row">
-    <div class="entity-main"><strong>${esc(m.subject)}</strong><span class="entity-subtitle">${esc(m.term)} · I1 ${esc(String(m.internal1))} · I2 ${esc(String(m.internal2))}</span></div>
-    <div class="entity-side"><span class="trend-chip bad">At Risk</span></div>
-  </div>`
-    )
-    .join("");
-}
-
-function renderStudentRemedials(el, remedials) {
-  if (!el) return;
-  if (!remedials || !remedials.length) {
-    el.innerHTML = `<div class="empty">No remedial sessions on record.</div>`;
-    return;
-  }
-  el.innerHTML = remedials
-    .map((r) => {
-      const subj = r.marks?.subject || "Subject";
-      const bf = r.beforeFinal != null ? r.beforeFinal : "—";
-      const af = r.afterFinal != null ? r.afterFinal : "—";
-      const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
-      return `<div class="remedial-mini"><strong>${esc(subj)}</strong> · ${esc(String(bf))} to ${esc(String(af))}<div class="activity-meta">${esc(when)}</div>${
-        r.notes ? `<p style="margin-top:0.35rem;color:var(--text-muted)">${esc(r.notes)}</p>` : ""
-      }</div>`;
-    })
-    .join("");
-}
-
-/* ── Staff: render top/bottom across all students ── */
-function renderRank(el, rows, kind, passMark) {
+function renderListRoot(el, rows, emptyMsg, mapFn) {
   if (!el) return;
   if (!rows || !rows.length) {
-    const emptyMsg =
-      kind === "risk"
-        ? "No marks flagged at risk (final &lt; 16 or either internal &lt; 9)."
-        : kind === "top"
-          ? passMark != null && Number.isFinite(Number(passMark))
-            ? `No marks at or above the pass mark (${Number(passMark)}) in this view.`
-            : "No passing marks in this view."
-        : "No marks detected yet.";
-    el.innerHTML = `<div class="empty">${emptyMsg}</div>`;
+    el.innerHTML = `<div class="empty">${esc(emptyMsg)}</div>`;
     return;
   }
-  el.innerHTML = rows.map((mark, index) => {
-    const name = mark.student?.name || "Unknown";
-    const subject = mark.subject || "—";
-    const final = typeof mark.final === "number" ? mark.final : 0;
-    const tone = kind === "top" ? "good" : "bad";
-    const label =
-      kind === "top" ? "Passing" : kind === "risk" ? "At risk" : "Lowest final";
-    return `<div class="entity-row">
-      <div class="entity-avatar">${initialOf(name)}</div>
-      <div class="entity-main">
-        <div class="entity-title-row">
-          <strong>${esc(name)}</strong>
-          <span class="mini-rank">#${index + 1}</span>
-        </div>
-        <span class="entity-subtitle">${esc(subject)}</span>
-      </div>
-      <div class="entity-side">
-        <span class="trend-chip ${tone}">${label}</span>
-        <span class="metric-value ${tone}">${final}</span>
-      </div>
-    </div>`;
-  }).join("");
+  el.innerHTML = rows.map(mapFn).join("");
 }
 
-function renderPredictive(el, insights, highCount) {
-  if (!el) return;
-  if (!insights || !insights.length) {
-    el.innerHTML = `<div class="empty">No elevated multi-subject risk signals yet.</div>`;
-    return;
-  }
-  const sub = highCount > 0 ? `${highCount} high band · ` : "";
-  el.innerHTML =
-    `<p class="hint" style="margin-bottom:1rem">${sub}${insights.length} student(s) on watchlist.</p>` +
-    insights.slice(0, 6).map((row) => {
-      const name = row.student?.name || "Student";
-      const band = row.riskBand || "watch";
-      const tone = band === "high" ? "bad" : band === "elevated" ? "warn" : "";
-      const score = row.riskScore ?? "—";
-      const avg = row.courseAvg != null ? row.courseAvg : "—";
-      const facts = (row.factors || []).slice(0, 2).join(" ");
-      return `<div class="entity-row entity-row-wide">
+function renderTopPerformers(el, rows) {
+  renderListRoot(
+    el,
+    rows,
+    "No marks recorded yet.",
+    (mark, index) => {
+      const name = mark.student?.name || "Unknown";
+      return `<div class="entity-row">
         <div class="entity-avatar">${initialOf(name)}</div>
         <div class="entity-main">
-          <div class="entity-title-row"><strong>${esc(name)}</strong></div>
-          <span class="entity-subtitle">${esc(facts || "Review recommended.")}</span>
+          <div class="entity-title-row">
+            <strong>${esc(name)}</strong>
+            <span class="mini-rank">#${index + 1}</span>
+          </div>
+          <span class="entity-subtitle">${esc(mark.subject || "-")} - ${esc(mark.term || "")}</span>
         </div>
         <div class="entity-side">
-          <span class="trend-chip ${tone}">Score ${score}</span>
-          <span class="metric-value ${tone}">Avg ${avg}</span>
+          <span class="trend-chip good">Passing</span>
+          <span class="metric-value good">${getFinal(mark)}</span>
         </div>
       </div>`;
-    }).join("");
+    }
+  );
+}
+
+function renderLowList(el, rows) {
+  renderListRoot(
+    el,
+    rows,
+    "No low-score records detected.",
+    (mark) => {
+      const name = mark.student?.name || "Unknown";
+      return `<div class="entity-row">
+        <div class="entity-avatar">${initialOf(name)}</div>
+        <div class="entity-main">
+          <strong>${esc(name)}</strong>
+          <span class="entity-subtitle">${esc(mark.subject || "-")} - final ${esc(String(getFinal(mark)))}</span>
+        </div>
+        <div class="entity-side">
+          <span class="trend-chip bad">At risk</span>
+        </div>
+      </div>`;
+    }
+  );
 }
 
 function renderResults(el, passFail, passMark) {
@@ -266,7 +270,7 @@ function renderResults(el, passFail, passMark) {
     <div class="entity-row entity-row-wide">
       <div class="entity-main">
         <div class="entity-title-row"><strong>Pass Results</strong></div>
-        <span class="entity-subtitle">${pass} students/records at or above ${passMark}</span>
+        <span class="entity-subtitle">${pass} records at or above ${passMark}</span>
       </div>
       <div class="entity-side">
         <span class="trend-chip good">${passPct}%</span>
@@ -276,7 +280,7 @@ function renderResults(el, passFail, passMark) {
     <div class="entity-row entity-row-wide">
       <div class="entity-main">
         <div class="entity-title-row"><strong>Fail Results</strong></div>
-        <span class="entity-subtitle">${fail} students/records below ${passMark}</span>
+        <span class="entity-subtitle">${fail} records below ${passMark}</span>
       </div>
       <div class="entity-side">
         <span class="trend-chip bad">${failPct}%</span>
@@ -285,37 +289,530 @@ function renderResults(el, passFail, passMark) {
     </div>`;
 }
 
-function renderActivity(el, items) {
-  if (!el) return;
-  if (!items || !items.length) {
-    el.innerHTML = `<div class="empty">No recent activity.</div>`;
+function renderActivityFeed(el, rows) {
+  renderListRoot(
+    el,
+    rows,
+    "No recent activity.",
+    (row) => {
+      const time = row.createdAt ? new Date(row.createdAt).toLocaleString() : "";
+      return `<div class="feed-row">
+        <div class="feed-dot"></div>
+        <div class="feed-main">
+          <strong>${esc(row.action || "System Event")}</strong>
+          <p>${esc(row.details || "")}</p>
+          <div class="activity-meta">${esc(time)}</div>
+        </div>
+      </div>`;
+    }
+  );
+}
+
+function renderSubjectSummary() {
+  const root = document.getElementById("academicReportTree");
+  if (!root) return;
+  if (isStudent && studentReport) {
+    const years = normalizeStudentAcademicFlow();
+    if (!years.length) {
+      root.innerHTML = `<div class="empty">No academic records are available yet.</div>`;
+      return;
+    }
+    root.innerHTML = `
+      <div class="academic-flow-legend">
+        <span class="academic-flow-legend-step">Year</span>
+        <span class="academic-flow-arrow">-></span>
+        <span class="academic-flow-legend-step">Semester</span>
+        <span class="academic-flow-arrow">-></span>
+        <span class="academic-flow-legend-step">Subjects</span>
+        <span class="academic-flow-arrow">-></span>
+        <span class="academic-flow-legend-step">Marks</span>
+      </div>
+      <div class="academic-flow-body">
+        ${years
+          .map((year) => {
+            const semesters = year.semesters || [];
+            return `<article class="academic-flow-year">
+              <div class="academic-flow-step academic-flow-step--year">
+                <span class="academic-flow-eyebrow">Year</span>
+                <div class="academic-flow-year-value">${esc(year.title || "Year")}</div>
+                ${year.sourceYear ? `<div class="hint" style="margin-top:0.2rem">${esc(year.sourceYear)}</div>` : ""}
+              </div>
+              <div class="academic-flow-nest academic-flow-nest--under-year">
+                ${semesters
+                  .map((semester) => {
+                    const subjects = semester.subjects || [];
+                    const semesterLabel = semester.displayName || semester.semester || "Semester";
+                    return `<section class="academic-flow-semester">
+                      <div class="academic-flow-step academic-flow-step--semester">
+                        <span class="academic-flow-eyebrow">Semester</span>
+                        <div class="academic-flow-step-body">${esc(semesterLabel)}</div>
+                        <div class="hint" style="margin-top:0.2rem">${esc(semester.term || "")}</div>
+                      </div>
+                      <div class="academic-flow-nest">
+                        <ul class="academic-flow-subject-list">
+                          ${subjects
+                            .map((mark) => {
+                              const final = getFinal(mark);
+                              const internalTotal = Number(mark.internalTotal ?? (Number(mark.internal1 || 0) + Number(mark.internal2 || 0)));
+                              const passed = final >= (dashboardSettings.passMark ?? 16);
+                              const grievance = grievanceForMark(mark._id);
+                              const deadline = resolveGrievanceDeadline(mark);
+                              const withinWindow = isStudentGrievanceOpen(mark);
+                              const openGrievance = isOpenGrievance(grievance);
+                              const grievanceTone = grievance ? grievanceStatusTone(grievance.status) : withinWindow ? "good" : "bad";
+                              const grievanceLabel = grievance
+                                ? grievanceStatusLabel(grievance.status)
+                                : withinWindow
+                                  ? "Raise grievance"
+                                  : "Window closed";
+                              return `<li class="academic-flow-subject">
+                                <div class="academic-flow-subject-head">
+                                  <span class="academic-flow-eyebrow">Subject</span>
+                                  <div class="academic-flow-subject-name"><strong>${esc(mark.subject || "-")}</strong></div>
+                                  <div class="academic-flow-subject-side">
+                                    <span class="trend-chip ${passed ? "good" : "warn"}">Final ${esc(String(final))}</span>
+                                    <span class="badge ${passed ? "good" : "warn"}">${passed ? "Pass" : "Below pass mark"}</span>
+                                  </div>
+                                </div>
+                                <div class="academic-flow-marks-block">
+                                  <div class="academic-flow-marks-grid">
+                                    <div><span class="entity-subtitle">Mid-1 (25)</span><div>${esc(String(mark.mid1 ?? "-"))}</div></div>
+                                    <div><span class="entity-subtitle">Assignment-1 (5)</span><div>${esc(String((mark.assignment ?? mark.assignment1) ?? "-"))}</div></div>
+                                    <div><span class="entity-subtitle">Mid-2 (25)</span><div>${esc(String(mark.mid2 ?? "-"))}</div></div>
+                                    <div><span class="entity-subtitle">Assignment-2 (5)</span><div>${esc(String((mark.lab ?? mark.assignment2) ?? "-"))}</div></div>
+                                    <div><span class="entity-subtitle">Internal-1 total</span><div>${esc(String(Number(mark.internal1 ?? 0) || "-"))}</div></div>
+                                    <div><span class="entity-subtitle">Internal-2 total</span><div>${esc(String(Number(mark.internal2 ?? 0) || "-"))}</div></div>
+                                  <div><span class="entity-subtitle">Updated</span><div>${esc(mark.updatedAt ? new Date(mark.updatedAt).toLocaleDateString() : "-")}</div></div>
+                                  </div>
+                                </div>
+                                <div class="academic-flow-subject-foot" style="margin-top:0.9rem;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+                                  <div class="hint" style="font-size:0.85rem">
+                                    ${grievance
+                                      ? `Complaint submitted ${esc(formatDateTime(grievance.createdAt))}${grievance.reviewedAt ? ` · reviewed ${esc(formatDateTime(grievance.reviewedAt))}` : ""}`
+                                      : deadline
+                                        ? `Complaint window closes ${esc(deadline.toLocaleString())}`
+                                        : "Complaint window unavailable."}
+                                  </div>
+                                  <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                                    <span class="trend-chip ${grievanceTone}">${esc(grievanceLabel)}</span>
+                                    <button type="button" class="btn small ${(openGrievance || !withinWindow) ? "ghost" : "primary"}" data-grievance-mark="${esc(mark._id)}" ${openGrievance || !withinWindow ? "disabled" : ""}>
+                                      ${openGrievance ? "Already filed" : withinWindow && grievance ? "Raise grievance again" : withinWindow ? "Raise grievance" : "Closed"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </li>`;
+                            })
+                            .join("")}
+                          ${!subjects.length ? `<li class="empty" style="text-align:left">No marks recorded for this semester yet.</li>` : ""}
+                        </ul>
+                      </div>
+                    </section>`;
+                  })
+                  .join("")}
+              </div>
+            </article>`;
+          })
+          .join("")}
+      </div>`;
     return;
   }
-  el.innerHTML = items.map(a => {
-    const action = a.action || "System Event";
-    const details = a.details || "";
-    const time = a.createdAt ? new Date(a.createdAt).toLocaleString() : "";
-    return `<div class="feed-row">
-      <div class="feed-dot"></div>
-      <div class="feed-main">
-        <strong>${esc(action)}</strong>
-        <p>${esc(details)}</p>
-        <div class="activity-meta">${time}</div>
-      </div>
+
+  const rows = getSubjectAvgRows();
+  if (!rows.length) {
+    root.innerHTML = `<div class="empty">No subject averages available yet.</div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="list-stack">
+      ${rows
+        .map((row) => {
+          const avg = Number(row.avgFinal || 0);
+          const pct = Math.max(0, Math.min(100, Math.round((avg / 25) * 100)));
+          return `<div class="entity-row entity-row-wide">
+            <div class="entity-main">
+              <div class="entity-title-row"><strong>${esc(row._id)}</strong></div>
+              <span class="entity-subtitle">Average final across synced records</span>
+            </div>
+            <div class="entity-side" style="min-width:140px;">
+              <span class="trend-chip ${avg >= (dashboardSettings.passMark ?? 16) ? "good" : "warn"}">${avg}</span>
+              <div style="width:120px;height:8px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:linear-gradient(90deg, var(--primary), #7c8cff);"></div>
+              </div>
+            </div>
+          </div>`;
+        })
+        .join("")}
     </div>`;
-  }).join("");
 }
 
-function isPastDeadline() {
-  if (!dashboardSettings?.marksDeadline) return false;
-  return Date.now() > new Date(dashboardSettings.marksDeadline).getTime();
+function renderStudentGrievanceForm() {
+  const select = document.getElementById("grievanceMarkSelect");
+  const deadlineHint = document.getElementById("grievanceDeadlineHint");
+  const alertBox = document.getElementById("studentGrievanceAlert");
+  if (!select || !deadlineHint || !alertBox) return;
+
+  const studentMarks = (marks || []).slice().sort((a, b) => String(a.subject || "").localeCompare(String(b.subject || ""), undefined, { sensitivity: "base" }));
+  const options = studentMarks.map((mark) => {
+    const grievance = grievanceForMark(mark._id);
+    const deadline = resolveGrievanceDeadline(mark);
+    const closed = !deadline || Date.now() > deadline.getTime();
+    const label = `${mark.subject || "Subject"} · ${mark.term || "Term"} · final ${getFinal(mark)}${closed ? " · closed" : ""}${grievance ? ` · ${grievanceStatusLabel(grievance.status)}` : ""}`;
+    return `<option value="${esc(mark._id)}">${esc(label)}</option>`;
+  });
+
+  if (!options.length) {
+    select.innerHTML = `<option value="">No marks available</option>`;
+    select.disabled = true;
+    deadlineHint.textContent = "No mark entries are available for grievance submission.";
+    alertBox.textContent = "Your complaint form will appear here once marks are available.";
+    return;
+  }
+
+  const previous = select.value;
+  select.innerHTML = options.join("");
+  select.disabled = false;
+  if (previous && studentMarks.some((mark) => String(mark._id) === String(previous))) {
+    select.value = previous;
+  } else if (!select.value) {
+    select.value = studentMarks[0]?._id || "";
+  }
+
+  const current = studentMarks.find((mark) => String(mark._id) === String(select.value)) || null;
+  if (!current) return;
+  const deadline = resolveGrievanceDeadline(current);
+  const grievance = grievanceForMark(current._id);
+  const openGrievance = isOpenGrievance(grievance);
+  deadlineHint.textContent = deadline
+    ? `Window closes ${deadline.toLocaleString()}`
+    : "This mark does not have a valid release date yet.";
+  alertBox.textContent = openGrievance
+    ? `Selected mark already has a ${grievanceStatusLabel(grievance.status).toLowerCase()} complaint.`
+    : grievance
+      ? `A previous complaint exists for this mark, but a new one can still be raised while the window is open.`
+      : isStudentGrievanceOpen(current)
+      ? "You can submit a complaint for the selected mark."
+      : "The 3-day grievance window has already closed for the selected mark.";
 }
 
-function formatDeadline(value) {
-  if (!value) return "No deadline configured.";
-  const when = new Date(value);
-  if (Number.isNaN(when.getTime())) return "No deadline configured.";
-  return `Current marks deadline: ${when.toLocaleString()}`;
+function renderStudentGrievanceHistory() {
+  const list = document.getElementById("studentGrievanceList");
+  if (!list) return;
+  const rows = [...(grievances || [])].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty">No grievances submitted yet.</div>`;
+    return;
+  }
+  list.innerHTML = rows
+    .map((grievance) => {
+      const mark = grievance.marks || {};
+      const tone = grievanceStatusTone(grievance.status);
+      return `<div class="entity-row entity-row-wide">
+        <div class="entity-main">
+          <div class="entity-title-row">
+            <strong>${esc(mark.subject || grievance.subject || "Subject")}</strong>
+            <span class="trend-chip ${tone}">${esc(grievanceStatusLabel(grievance.status))}</span>
+          </div>
+          <span class="entity-subtitle">${esc(mark.term || grievance.term || "")} · submitted ${esc(formatDateTime(grievance.createdAt))}</span>
+          <p class="hint" style="margin-top:0.35rem">${esc(grievance.justification || "")}</p>
+          ${grievance.supportingDetails ? `<p class="hint" style="margin-top:0.35rem">Supporting: ${esc(grievance.supportingDetails)}</p>` : ""}
+          ${grievance.resolutionNote ? `<p class="hint" style="margin-top:0.35rem">Resolution: ${esc(grievance.resolutionNote)}</p>` : ""}
+        </div>
+        <div class="entity-side">
+          <span class="metric-value">${esc(String(grievance.deadlineExpired ? "Closed" : "Open"))}</span>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+function renderStaffGrievancePanel() {
+  const section = document.getElementById("staffGrievanceSection");
+  const list = document.getElementById("staffGrievanceList");
+  const statusFilter = document.getElementById("staffGrievanceStatus");
+  const searchInput = document.getElementById("staffGrievanceSearch");
+  const message = document.getElementById("staffGrievanceMessage");
+  const openCount = document.getElementById("grievanceOpenCount");
+  const resolvedCount = document.getElementById("grievanceResolvedCount");
+  const rejectedCount = document.getElementById("grievanceRejectedCount");
+
+  if (!section || !list || !statusFilter || !searchInput) return;
+  if (isStudent) {
+    section.remove();
+    return;
+  }
+
+  statusFilter.value = grievanceFilters.status;
+  searchInput.value = grievanceFilters.search;
+
+  const search = String(grievanceFilters.search || "").trim().toLowerCase();
+  const filtered = [...(grievances || [])]
+    .filter((item) => {
+      if (grievanceFilters.status !== "all" && String(item.status || "") !== grievanceFilters.status) return false;
+      if (!search) return true;
+      const student = item.student || {};
+      const haystack = [
+        student.name,
+        student.rollNumber,
+        student.section,
+        item.subject,
+        item.term,
+        item.justification,
+        item.supportingDetails,
+        item.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(search);
+    })
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
+  const counts = (grievances || []).reduce(
+    (acc, item) => {
+      const status = String(item.status || "pending");
+      if (status === "resolved") acc.resolved += 1;
+      else if (status === "rejected") acc.rejected += 1;
+      else acc.open += 1;
+      return acc;
+    },
+    { open: 0, resolved: 0, rejected: 0 }
+  );
+
+  if (openCount) openCount.textContent = String(counts.open);
+  if (resolvedCount) resolvedCount.textContent = String(counts.resolved);
+  if (rejectedCount) rejectedCount.textContent = String(counts.rejected);
+  if (message) {
+    message.textContent = filtered.length
+      ? `Showing ${filtered.length} grievance${filtered.length === 1 ? "" : "s"} from ${grievances.length} total records.`
+      : "No grievances match the current filter.";
+  }
+
+  if (!grievances.length) {
+    list.innerHTML = `<div class="empty">No student grievances have been submitted yet.</div>`;
+    return;
+  }
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">No grievances match the selected filter.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered
+    .map((item) => {
+      const student = item.student || {};
+      const mark = item.marks || {};
+      const tone = grievanceStatusTone(item.status);
+      const isOpen = item.status === "pending" || item.status === "under_review";
+      const statusText = grievanceStatusLabel(item.status);
+      const submittedAt = formatDateTime(item.createdAt);
+      const reviewedAt = item.reviewedAt ? formatDateTime(item.reviewedAt) : "—";
+      const deadlineText = item.deadlineAt ? formatDateTime(item.deadlineAt) : "—";
+      const actionLabel = item.status === "resolved" ? "Mark as resolved" : item.status === "rejected" ? "Mark as rejected" : "Update status";
+      return `<article class="entity-row entity-row-wide">
+        <div class="entity-main">
+          <div class="entity-title-row">
+            <strong>${esc(grievanceStudentLabel(item))}</strong>
+            <span class="trend-chip ${tone}">${esc(statusText)}</span>
+          </div>
+          <span class="entity-subtitle">${esc(mark.subject || item.subject || "Subject")} · ${esc(mark.term || item.term || "")} · submitted ${esc(submittedAt)}</span>
+          <p class="hint" style="margin-top:0.35rem"><strong>Justification:</strong> ${esc(item.justification || "")}</p>
+          ${item.supportingDetails ? `<p class="hint" style="margin-top:0.35rem"><strong>Supporting:</strong> ${esc(item.supportingDetails)}</p>` : ""}
+          ${item.resolutionNote ? `<p class="hint" style="margin-top:0.35rem"><strong>Resolution:</strong> ${esc(item.resolutionNote)}</p>` : ""}
+          <div class="hint" style="margin-top:0.35rem;font-size:0.85rem">
+            Deadline: ${esc(deadlineText)} · Reviewed: ${esc(reviewedAt)}
+          </div>
+        </div>
+        <div class="entity-side" style="min-width:220px;align-items:flex-end;">
+          <span class="metric-value">${esc(mark.final != null ? String(mark.final) : "—")}</span>
+          <span class="hint" style="text-align:right">${esc(student.rollNumber ? `Roll ${student.rollNumber}` : "No roll number")}</span>
+          <div class="table-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;margin-top:0.5rem;">
+            <button type="button" class="btn small" data-grievance-status="under_review" data-grievance-id="${esc(item._id)}" ${item.status === "under_review" ? "disabled" : ""}>Under review</button>
+            <button type="button" class="btn small" data-grievance-status="resolved" data-grievance-id="${esc(item._id)}">Resolve</button>
+            <button type="button" class="btn small danger" data-grievance-status="rejected" data-grievance-id="${esc(item._id)}">Reject</button>
+          </div>
+          <span class="hint" style="font-size:0.8rem;text-align:right;margin-top:0.25rem">${isOpen ? "Open complaint" : "Closed complaint"}</span>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+async function updateGrievanceStatus(id, status) {
+  let resolutionNote = "";
+  if (status === "resolved" || status === "rejected") {
+    const note = window.prompt(
+      status === "resolved"
+        ? "Enter a resolution note for this grievance:"
+        : "Enter a rejection note for this grievance:",
+      ""
+    );
+    if (note === null) return;
+    resolutionNote = note.trim();
+  }
+  try {
+    await api(`/grievances/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, resolutionNote }),
+    });
+    toast("good", "Updated", `Grievance marked as ${status.replace("_", " ")}.`);
+    await refreshStaffGrievances();
+  } catch (e) {
+    toast("bad", "Update failed", e.message || "Unable to update grievance.");
+  }
+}
+
+async function submitStudentGrievance(event) {
+  event.preventDefault();
+  const marksId = selectedGrievanceMark();
+  const justification = String(document.getElementById("grievanceJustification")?.value || "").trim();
+  const supportingDetails = String(document.getElementById("grievanceSupport")?.value || "").trim();
+  const btn = document.getElementById("grievanceSubmitBtn");
+  if (!marksId) {
+    toast("bad", "Validation", "Select the mark entry first.");
+    return;
+  }
+  if (justification.length < 10) {
+    toast("bad", "Validation", "Add a clear justification of at least 10 characters.");
+    return;
+  }
+
+  const current = marks.find((mark) => String(mark._id) === String(marksId));
+  if (!current) {
+    toast("bad", "Validation", "Selected mark was not found.");
+    return;
+  }
+  if (!isStudentGrievanceOpen(current)) {
+    toast("warn", "Window closed", "This mark is past the 3-day grievance deadline.");
+    renderStudentGrievanceForm();
+    return;
+  }
+  if (isOpenGrievance(grievanceForMark(marksId))) {
+    toast("warn", "Duplicate", "A complaint already exists for this mark.");
+    renderStudentGrievanceForm();
+    return;
+  }
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Submitting...";
+    }
+    await api("/grievances", {
+      method: "POST",
+      body: JSON.stringify({ marksId, justification, supportingDetails }),
+    });
+    toast("good", "Submitted", "Your grievance has been sent for review.");
+    document.getElementById("grievanceJustification").value = "";
+    document.getElementById("grievanceSupport").value = "";
+    await refreshStudentGrievances();
+  } catch (e) {
+    toast("bad", "Submission failed", e.message || "Unable to submit grievance.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Submit grievance";
+    }
+    renderStudentGrievanceForm();
+  }
+}
+
+async function refreshStudentGrievances() {
+  if (!isStudent) return;
+  const data = await api("/grievances").catch(() => ({ grievances: [] }));
+  grievances = data.grievances || [];
+  renderStudentGrievanceForm();
+  renderStudentGrievanceHistory();
+  renderDashboardLists();
+}
+
+async function refreshStaffGrievances() {
+  if (isStudent) return;
+  const data = await api("/grievances").catch(() => ({ grievances: [] }));
+  grievances = data.grievances || [];
+  renderDashboardLists();
+}
+
+function renderRiskLists() {
+  if (isStudent) {
+    document.getElementById("studentLowFinalList")?.closest(".card")?.remove();
+    return;
+  }
+  const lowFinalSource = isStudent && studentReport ? studentReport.lowFinalSubjects || [] : marks;
+  const internalRiskSource = isStudent && studentReport ? studentReport.internalRiskSubjects || [] : marks;
+  const remedialSource = isStudent && studentReport ? studentReport.remedials || [] : remedials;
+  const studentName = studentReport?.student?.name || user?.name || "Unknown";
+
+  const lowFinal = [...lowFinalSource]
+    .filter((m) => Number(m.final ?? m.finalNum ?? m.finalScore ?? getFinal(m)) < FINAL_FAIL_TH)
+    .sort((a, b) => Number(a.final ?? 0) - Number(b.final ?? 0));
+  const internalRisk = [...internalRiskSource].filter((m) => {
+    const i1 = Number(m.internal1 || 0);
+    const i2 = Number(m.internal2 || 0);
+    return (i1 > 0 && i1 < INTERNAL_RISK_TH) || (i2 > 0 && i2 < INTERNAL_RISK_TH);
+  });
+  renderListRoot(
+    document.getElementById("studentLowFinalList"),
+    lowFinal,
+    `No subjects with final mark under ${FINAL_FAIL_TH}.`,
+    (mark) => `<div class="entity-row">
+      <div class="entity-main"><strong>${esc(mark.subject || "-")}</strong><span class="entity-subtitle">${esc(mark.student?.name || studentName)} - final ${esc(String(getFinal(mark)))}</span></div>
+      <div class="entity-side"><span class="trend-chip bad">Below ${FINAL_FAIL_TH}</span></div>
+    </div>`
+  );
+  renderListRoot(
+    document.getElementById("studentInternalRiskList"),
+    internalRisk,
+    `No subjects with Internal-1 or Internal-2 below ${INTERNAL_RISK_TH}.`,
+    (mark) => `<div class="entity-row">
+      <div class="entity-main"><strong>${esc(mark.subject || "-")}</strong><span class="entity-subtitle">${esc(mark.student?.name || studentName)} - I1 ${esc(String(mark.internal1 ?? "-"))} - I2 ${esc(String(mark.internal2 ?? "-"))}</span></div>
+      <div class="entity-side"><span class="trend-chip bad">At Risk</span></div>
+    </div>`
+  );
+
+  renderListRoot(
+    document.getElementById("studentRemedialList"),
+    remedialSource,
+    "No remedial sessions on record.",
+    (r) => {
+      const subj = r.marks?.subject || "Subject";
+      const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+      return `<div class="remedial-mini">
+        <strong>${esc(subj)}</strong> - ${esc(String(r.beforeFinal ?? "-"))} to ${esc(String(r.afterFinal ?? "-"))}
+        <div class="activity-meta">${esc(when)}</div>
+        ${r.notes ? `<p style="margin-top:0.35rem;color:var(--text-muted)">${esc(r.notes)}</p>` : ""}
+      </div>`;
+    }
+  );
+}
+
+function updateDashboardStats() {
+  const studentCount = isStudent ? 1 : students.length;
+  const recordCount = summary.total || marks.length;
+  const sections = isStudent
+    ? (studentReport?.years || []).length
+    : new Set(students.map((s) => String(s.section || "").trim()).filter(Boolean)).size;
+  const avgScore = Number(summary.avgScore || 0);
+  const subjectCount = isStudent
+    ? (studentReport?.years || [])
+        .flatMap((year) => year.semesters || [])
+        .flatMap((semester) => semester.subjects || []).length
+    : students.length;
+
+  setText("heroGreeting", currentName());
+  setText("heroStatus", isFaculty ? "Faculty mode" : isStudent ? "Academic report" : "Operational");
+  setText("kpiStudentsLabel", isStudent ? "Student profile" : "Students");
+  setText("kpiRecordsLabel", isStudent ? "Subjects" : "Synced records");
+  setText("kpiRiskLabel", isStudent ? "Semesters" : "At Risk");
+  setText("kpiAnomLabel", isStudent ? "Average" : "Anomalies");
+  setText("kpiStudents", String(studentCount));
+  setText("kpiRecords", String(isStudent ? subjectCount : recordCount));
+  setText("kpiRisk", String(isStudent ? sections : summary.riskCount || 0));
+  setText("kpiAnom", String(isStudent ? avgScore.toFixed(1) : summary.anomalyCount || 0));
+
+  setTrend("kpiStudentsTrend", isStudent ? `${studentCount} student` : `${sections || 0} sections`, "good");
+  setTrend("kpiRecordsTrend", isStudent ? `${sections || 0} year${sections === 1 ? "" : "s"}` : `${avgScore.toFixed(1)} avg`, "warn");
+  setTrend("kpiRiskTrend", isStudent ? `Report summary` : `Threshold < ${dashboardSettings.riskThreshold ?? FINAL_FAIL_TH}`, "good");
+  setTrend("kpiAnomTrend", isStudent ? `Final average` : `${summary.predictedHighRiskCount || 0} watch`, "warn");
+  setTrend("heroStatus", isFaculty ? "Faculty dashboard" : isStudent ? "Academic report" : "Operational", "good");
 }
 
 function renderFacultyApprovalPanel() {
@@ -332,38 +829,37 @@ function renderFacultyApprovalPanel() {
     return;
   }
 
-  meta.textContent = formatDeadline(dashboardSettings?.marksDeadline);
-  marksLink.style.pointerEvents = "";
-  marksLink.style.opacity = "";
-  marksLink.removeAttribute("aria-disabled");
+  meta.textContent = dashboardSettings?.marksDeadline
+    ? `Current marks deadline: ${new Date(dashboardSettings.marksDeadline).toLocaleString()}`
+    : "No deadline configured.";
 
-  if (!dashboardSettings?.marksDeadline) {
-    message.textContent = "Admin has not set a marks deadline yet. You can continue normal marks entry.";
+  const deadline = dashboardSettings?.marksDeadline ? new Date(dashboardSettings.marksDeadline) : null;
+  const pastDeadline = deadline && !Number.isNaN(deadline.getTime()) && Date.now() > deadline.getTime();
+
+  if (!deadline) {
+    message.textContent = "Admin has not set a marks deadline yet.";
     status.textContent = "Open";
     status.className = "trend-chip good";
     button.disabled = true;
     button.textContent = "Deadline Not Set";
-    marksLink.classList.remove("disabled");
     return;
   }
 
-  if (!isPastDeadline()) {
-    message.textContent = "Marks entry is open. You only need admin approval after the deadline passes.";
+  if (!pastDeadline) {
+    message.textContent = "Marks entry is open. Approval is only needed after the deadline passes.";
     status.textContent = "Open";
     status.className = "trend-chip good";
     button.disabled = true;
     button.textContent = "Available After Deadline";
-    marksLink.classList.remove("disabled");
     return;
   }
 
   if (dashboardApproval?.status === "approved") {
-    message.textContent = "Your post-deadline marks request is approved. You can continue in the Marks page.";
+    message.textContent = "Your post-deadline marks request is approved.";
     status.textContent = "Approved";
     status.className = "trend-chip good";
     button.disabled = true;
     button.textContent = "Approved";
-    marksLink.classList.remove("disabled");
     return;
   }
 
@@ -373,183 +869,170 @@ function renderFacultyApprovalPanel() {
     status.className = "trend-chip warn";
     button.disabled = true;
     button.textContent = "Request Pending";
-    marksLink.classList.remove("disabled");
     return;
   }
 
-  if (dashboardApproval?.status === "rejected") {
-    message.textContent = "Your last request was rejected. You can send a fresh request for the current deadline.";
-    status.textContent = "Rejected";
-    status.className = "trend-chip bad";
-    button.disabled = false;
-    button.textContent = "Send Request Again";
-    marksLink.style.pointerEvents = "none";
-    marksLink.style.opacity = "0.55";
-    marksLink.setAttribute("aria-disabled", "true");
-    return;
-  }
-
-  message.textContent = "Marks entry is locked after the deadline. Send a request here and wait for admin approval.";
-  status.textContent = "Locked";
-  status.className = "trend-chip bad";
+  message.textContent = "Deadline passed. Request admin approval to continue entering marks.";
+  status.textContent = "Required";
+  status.className = "trend-chip warn";
   button.disabled = false;
   button.textContent = "Send Request";
-  marksLink.style.pointerEvents = "none";
-  marksLink.style.opacity = "0.55";
-  marksLink.setAttribute("aria-disabled", "true");
 }
 
-async function requestFacultyApproval() {
-  const button = document.getElementById("facultyApprovalBtn");
-  if (!button || button.disabled) return;
-  try {
-    button.disabled = true;
-    const requestNote = window.prompt("Reason for admin approval:", "Need to enter marks after deadline.") || "";
-    await api("/marks-approvals", { method: "POST", body: JSON.stringify({ requestNote }) });
-    const approvalsData = await api("/marks-approvals").catch(() => ({ approvals: [] }));
-    dashboardApproval = (approvalsData.approvals || [])[0] || null;
-    renderFacultyApprovalPanel();
-    toast("good", "Requested", "Approval request sent to admin.");
-  } catch (e) {
-    button.disabled = false;
-    toast("bad", "Request failed", e.message || "Could not send request.");
+function renderDashboardLists() {
+  const topRows = (summary.top || []).slice(0, 6);
+  const lowRows = (summary.low || []).slice(0, 6);
+  renderTopPerformers(document.getElementById("topList"), topRows);
+  renderLowList(document.getElementById("lowList"), lowRows);
+  renderResults(document.getElementById("resultsList"), summary.passFail, dashboardSettings.passMark ?? 16);
+  if (!isStudent) {
+    renderActivityFeed(document.getElementById("actList"), activity.slice(0, 8));
+  }
+  renderSubjectSummary();
+  if (isStudent) {
+    renderStudentGrievanceForm();
+    renderStudentGrievanceHistory();
+  } else {
+    renderStaffGrievancePanel();
+  }
+  if (!isStudent) renderRiskLists();
+
+  const studentSectionTitle = document.querySelector("#studentSection h2");
+  const studentSectionHint = document.querySelector("#studentSection .hint");
+  if (studentSectionTitle) studentSectionTitle.textContent = isStudent ? "Academic Report" : "Subject Summary and Risks";
+  if (studentSectionHint) {
+    studentSectionHint.textContent = isStudent
+      ? "Year, semester, subject, and mark breakdown."
+      : "Subject averages, low finals, internal risks, and recent remedial sessions.";
+  }
+  if (!isStudent) {
+    document.getElementById("studentGrievanceCard")?.remove();
   }
 }
 
-async function boot() {
-  try {
-    const me = getUser();
-    const studentRef = me?.studentId || (typeof me?.studentRef === "string" ? me.studentRef : me?.studentRef?._id);
-    const requests = [
-      api("/analytics/summary").catch(() => ({})),
-      isAdmin ? api("/activity?limit=20").catch(() => ({ activity: [] })) : Promise.resolve({ activity: [] }),
-      isStudent ? Promise.resolve({ total: 0 }) : api("/students?limit=1").catch(() => ({ total: 0 })),
-      isStudent && studentRef
-        ? api(`/students/${studentRef}/academic-report`).catch(() => null)
-        : Promise.resolve(null),
-      (isFaculty || isAdmin) ? api("/settings").catch(() => ({})) : Promise.resolve({}),
-      isFaculty ? api("/marks-approvals").catch(() => ({ approvals: [] })) : Promise.resolve({ approvals: [] }),
-    ];
-    const [summary, activityData, studentsData, academicReport, settingsData, approvalsData] = await Promise.all(requests);
-    dashboardSettings = settingsData || {};
-    dashboardApproval = (approvalsData?.approvals || [])[0] || null;
+async function loadDashboardData() {
+  const studentId = getCurrentStudentId();
+  const settingsPromise = api("/settings");
+  const summaryPromise = api("/analytics/summary?term=all");
+  const studentsPromise = api("/students?limit=5000").catch(() => ({ students: [] }));
+  const marksPromise = api("/marks?page=1&limit=5000&term=all").catch(() => ({ marks: [] }));
+  let reportPromise = Promise.resolve(null);
+  let remedialsPromise = Promise.resolve({ remedials: [] });
+  let grievancesPromise = Promise.resolve({ grievances: [] });
+  let activityPromise = Promise.resolve({ activity: [] });
 
-    const studentName = me?.name || "Student";
-    const recordsCount = Number(summary?.total ?? 0);
-    const riskCount    = Number(summary?.riskCount ?? 0);
-    const anomalyCount = Number(summary?.anomalyCount ?? 0);
-    const avgScore     = Number(summary?.avgScore ?? 0);
-    const studentCount = Number(studentsData?.total ?? 0);
+  if (isStudent && studentId) {
+    reportPromise = api(`/students/${encodeURIComponent(studentId)}/academic-report`).catch(() => null);
+    grievancesPromise = api("/grievances").catch(() => ({ grievances: [] }));
+  } else {
+    remedialsPromise = api("/remedials").catch(() => ({ remedials: [] }));
+    activityPromise = api("/activity").catch(() => ({ activity: [] }));
+    grievancesPromise = api("/grievances").catch(() => ({ grievances: [] }));
+  }
 
-    /* ── Greeting ── */
-    setEl("heroGreeting", isStudent ? `Welcome back, ${studentName}` : "System Pulse Dashboard");
+  const [settings, summaryData, studentsData, marksData, reportData, remedialsData, grievancesData, activityData] = await Promise.all([
+    settingsPromise,
+    summaryPromise,
+    studentsPromise,
+    marksPromise,
+    reportPromise,
+    remedialsPromise,
+    grievancesPromise,
+    activityPromise,
+  ]);
 
-    const markTh = academicReport?.markAlertThreshold ?? FINAL_FAIL_TH;
-    const internalTh = academicReport?.internalRiskThreshold ?? INTERNAL_RISK_TH;
-    const lowFinalN = academicReport?.lowFinalSubjects?.length ?? 0;
+  dashboardSettings = settings || {};
+  summary = summaryData || summary;
+  students = studentsData.students || [];
+  marks = marksData.marks || [];
+  studentReport = isStudent ? reportData || null : null;
+  remedials = remedialsData?.remedials || [];
+  grievances = grievancesData?.grievances || [];
+  activity = activityData?.activity || [];
+  if (isFaculty) {
+    const approvalData = await api("/marks-approvals").catch(() => ({ approvals: [] }));
+    dashboardApproval = (approvalData.approvals || [])[0] || null;
+  } else {
+    dashboardApproval = null;
+  }
 
-    if (isStudent) {
-      /* ── KPI: student view ── */
-      setEl("kpiStudentsLabel", "Your Average");
-      setEl("kpiRecordsLabel", "Subjects Recorded");
-      setEl("kpiRiskLabel", "Academic Status");
-      setEl("kpiAnomLabel", "Flagged Issues");
+  if (isStudent && studentReport) {
+    summary = {
+      ...summary,
+      total: studentReport.years?.reduce((acc, year) => acc + (year.semesters || []).reduce((semAcc, sem) => semAcc + (sem.subjects || []).length, 0), 0) || summary.total,
+      low: studentReport.lowFinalSubjects || [],
+      atRiskList: studentReport.internalRiskSubjects || [],
+      remedials: studentReport.remedials || [],
+    };
+    marks = (studentReport.years || [])
+      .flatMap((year) => year.semesters || [])
+      .flatMap((semester) => semester.subjects || []);
+  }
 
-      setEl("kpiStudents", avgScore ? avgScore.toFixed(1) : "—");
-      setEl("kpiRecords", String(recordsCount));
-      const internalRiskN = academicReport?.internalRiskSubjects?.length ?? 0;
-      setEl("kpiRisk", riskCount > 0 || internalRiskN > 0 || lowFinalN > 0 ? "At Risk" : "On Track");
-      setEl("kpiAnom", String(anomalyCount));
+  updateDashboardStats();
+  renderFacultyApprovalPanel();
+  renderDashboardLists();
 
-      const avgTone = avgScore >= 24 ? "good" : avgScore >= 16 ? "warn" : avgScore > 0 ? "bad" : "";
-      setTrend("kpiStudentsTrend",
-        avgScore > 0 ? (avgScore >= 24 ? "Strong performance" : avgScore >= 16 ? "Passing average" : "Below threshold") : "No marks yet",
-        avgTone);
-      setTrend("kpiRecordsTrend",
-        recordsCount > 0 ? `${recordsCount} subject${recordsCount !== 1 ? "s" : ""} on file` : "No records yet",
-        recordsCount > 0 ? "good" : "");
-      {
-        const rp = [];
-        if (lowFinalN) rp.push(`${lowFinalN} final <${markTh}`);
-        if (internalRiskN) rp.push(`${internalRiskN} internal mark(s) below ${INTERNAL_RISK_TH}`);
-        if (riskCount) rp.push(`${riskCount} at-risk mark(s) (final < ${FINAL_FAIL_TH} or I1/I2 < ${INTERNAL_RISK_TH})`);
-        setTrend("kpiRiskTrend", rp.length ? rp.join(" · ") : "All subjects healthy", rp.length ? "bad" : "good");
-      }
-      setTrend("kpiAnomTrend",
-        anomalyCount > 0 ? `${anomalyCount} anomal${anomalyCount !== 1 ? "ies" : "y"} flagged` : "No anomalies",
-        anomalyCount > 0 ? "warn" : "good");
-      setTrend(
-        "heroStatus",
-        riskCount > 0 || internalRiskN > 0 || lowFinalN > 0 ? "Needs attention" : "Looking good",
-        riskCount > 0 || internalRiskN > 0 || lowFinalN > 0 ? "warn" : "good"
-      );
+  if (isStudent) {
+    document.getElementById("staffHighlights")?.remove();
+    document.getElementById("activitySection")?.remove();
+    document.getElementById("facultyApprovalSection")?.remove();
+    document.getElementById("staffGrievanceSection")?.remove();
+    document.getElementById("kpiRiskCard")?.remove();
+    document.getElementById("kpiAnomCard")?.remove();
+  }
+}
 
-      // Swap first KPI icon for student (graduation cap)
-      const kpiIconWrap = document.querySelector("#kpiStudentsCard .kpi-icon");
-      if (kpiIconWrap) {
-        kpiIconWrap.innerHTML =
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>';
-      }
-
-      renderAcademicReportTree(document.getElementById("academicReportTree"), academicReport);
-      renderLowFinalList(document.getElementById("studentLowFinalList"), academicReport?.lowFinalSubjects, markTh);
-      renderInternalRiskList(document.getElementById("studentInternalRiskList"), academicReport?.internalRiskSubjects, internalTh);
-      renderStudentRemedials(document.getElementById("studentRemedialList"), academicReport?.remedials);
-
-      // Hide staff-only sections
-      document.getElementById("facultyApprovalSection")?.remove();
-      document.getElementById("staffHighlights")?.remove();
-      document.getElementById("resultsSection")?.remove();
-      document.getElementById("predictiveSection")?.remove();
-      document.getElementById("activitySection")?.remove();
-
-    } else {
-      /* ── KPI: staff view ── */
-      setEl("kpiStudentsLabel", "Students");
-      setEl("kpiRecordsLabel", "Records");
-      setEl("kpiRiskLabel", "At Risk");
-      setEl("kpiAnomLabel", "Anomalies");
-
-      setEl("kpiStudents", String(studentCount));
-      setEl("kpiRecords", String(recordsCount));
-      setEl("kpiRisk", String(riskCount));
-      setEl("kpiAnom", String(anomalyCount));
-
-      setTrend("kpiStudentsTrend", studentCount > 0 ? `${studentCount} active profiles` : "No students yet", studentCount > 0 ? "good" : "");
-      setTrend("kpiRecordsTrend", recordsCount > 0 ? `${recordsCount} synced records` : "No records yet", recordsCount > 0 ? "good" : "");
-
-      const ph = Number(summary?.predictedHighRiskCount ?? 0);
-      setTrend("kpiRiskTrend",
-        ph > 0 ? `${ph} predictive high-risk` : riskCount > 0 ? `${riskCount} need intervention` : "No immediate concern",
-        riskCount > 0 || ph > 0 ? "bad" : "good");
-      setTrend("kpiAnomTrend",
-        anomalyCount > 0 ? `${anomalyCount} flagged` : "No outliers detected",
-        anomalyCount > 0 ? "warn" : "good");
-      setTrend("heroStatus",
-        riskCount + anomalyCount > 0 ? "Action needed" : "Healthy",
-        riskCount + anomalyCount > 0 ? "warn" : "good");
-
-      renderRank(document.getElementById("topList"), summary.top || [], "top", summary.settings?.passMark);
-      renderRank(document.getElementById("lowList"), summary.atRiskList || [], "risk");
-      renderResults(document.getElementById("resultsList"), summary.passFail, summary.settings?.passMark ?? 16);
-      renderPredictive(document.getElementById("predictiveList"), summary.studentRiskInsights || [], ph);
-      if (isAdmin) {
-        renderActivity(document.getElementById("actList"), activityData.activity || []);
-      } else {
-        document.getElementById("activitySection")?.remove();
-      }
-
-      renderFacultyApprovalPanel();
-      document.getElementById("facultyApprovalBtn")?.addEventListener("click", requestFacultyApproval);
-
-      // Hide student-only section
-      document.getElementById("studentSection")?.remove();
+function initStudentGrievanceInteractions() {
+  if (!isStudent) return;
+  document.getElementById("studentGrievanceForm")?.addEventListener("submit", submitStudentGrievance);
+  document.getElementById("grievanceResetBtn")?.addEventListener("click", () => {
+    const form = document.getElementById("studentGrievanceForm");
+    form?.reset();
+    renderStudentGrievanceForm();
+  });
+  document.getElementById("grievanceMarkSelect")?.addEventListener("change", renderStudentGrievanceForm);
+  document.getElementById("academicReportTree")?.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-grievance-mark]");
+    if (!trigger) return;
+    const markId = String(trigger.getAttribute("data-grievance-mark") || "");
+    const select = document.getElementById("grievanceMarkSelect");
+    if (select && markId) {
+      select.value = markId;
+      renderStudentGrievanceForm();
+      document.getElementById("studentGrievanceCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("grievanceJustification")?.focus();
     }
-
-  } catch (e) {
-    console.error("Dashboard boot error:", e);
-    toast("bad", "Dashboard", e.message || "Failed to load dashboard data.");
-  }
+  });
 }
 
-boot();
+function initStaffGrievanceInteractions() {
+  if (isStudent) return;
+  document.getElementById("staffGrievanceStatus")?.addEventListener("change", (event) => {
+    grievanceFilters.status = String(event.target.value || "all");
+    renderStaffGrievancePanel();
+  });
+  document.getElementById("staffGrievanceSearch")?.addEventListener("input", (event) => {
+    grievanceFilters.search = String(event.target.value || "");
+    renderStaffGrievancePanel();
+  });
+  document.getElementById("staffGrievanceRefresh")?.addEventListener("click", () => {
+    refreshStaffGrievances();
+  });
+  document.getElementById("staffGrievanceList")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-grievance-status][data-grievance-id]");
+    if (!btn) return;
+    const id = String(btn.getAttribute("data-grievance-id") || "");
+    const status = String(btn.getAttribute("data-grievance-status") || "");
+    if (!id || !status) return;
+    updateGrievanceStatus(id, status);
+  });
+}
+
+initStudentGrievanceInteractions();
+initStaffGrievanceInteractions();
+
+loadDashboardData().catch((err) => {
+  console.error(err);
+  toast("bad", "Dashboard", err.message || "Failed to load dashboard data.");
+});

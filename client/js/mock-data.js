@@ -18,10 +18,10 @@ const INITIAL_DATA = {
   users: [
     { _id: "u1", username: "admin",   role: "admin",   name: "System Admin" },
     { _id: "u2", username: "faculty", role: "faculty", name: "Dr. Sarah Miller" },
-    { _id: "u3", username: "student", role: "student", name: "Alice Johnson", studentRef: "s1" },
+    { _id: "u3", username: "student", role: "student", name: "Alice Johnson", password: "student123", studentRef: "s1" },
   ],
   students: [
-    { _id: "s1", name: "Alice Johnson", email: "alice@univ.edu", rollNumber: "2024001", section: "A", createdBy: "u2" },
+    { _id: "s1", name: "Alice Johnson", email: "alice@univ.edu", rollNumber: "2271126", section: "A", createdBy: "u2" },
     { _id: "s2", name: "Bob Smith",     email: "bob@univ.edu",   rollNumber: "2024002", section: "B", createdBy: "u2" },
   ],
   // Finals pre-computed: best(I1,I2)×0.8 + other×0.2, with each internal out of 25.
@@ -46,9 +46,10 @@ const INITIAL_DATA = {
     { _id: "a1", action: "LOGIN", details: "Admin accessed the system", actorName: "System Admin", createdAt: new Date().toISOString() },
   ],
   remedials: [],
+  grievances: [],
 };
 
-const DB_VERSION = 9;
+const DB_VERSION = 11;
 
 export const INTERNAL_REMEDIAL_THRESHOLD = 9;
 export const FINAL_FAIL_THRESHOLD = 16;
@@ -140,10 +141,12 @@ export function getDb() {
     }
   }
   db.settings = db.settings || {};
+  db.grievances = db.grievances || [];
   const dt = db.settings.defaultTerm || "2025-T1";
   db.settings.defaultTerm = dt;
   (db.marks || []).forEach((m) => {
     if (m.term == null || m.term === "") m.term = dt;
+    if (!m.releasedAt) m.releasedAt = m.createdAt || new Date().toISOString();
   });
   saveDb(db);
   return db;
@@ -303,6 +306,8 @@ export function mockAcademicReport(db, studentId) {
       bestKey: m.bestKey,
       atRisk: m.atRisk,
       anomaly: m.anomaly,
+      releasedAt: m.releasedAt,
+      createdAt: m.createdAt,
       updatedAt: m.updatedAt,
     };
   });

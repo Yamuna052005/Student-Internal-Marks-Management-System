@@ -18,11 +18,11 @@ export async function seedAdminIfNeeded() {
   const adminUser = process.env.SEED_ADMIN_USERNAME || "admin";
   const adminPass = process.env.SEED_ADMIN_PASSWORD || "admin123";
   const facultyPass = process.env.SEED_FACULTY_PASSWORD || "faculty123";
-  const studentPass = process.env.SEED_STUDENT_PASSWORD || "student123";
+  const demoStudentRoll = "2271126";
 
   const adminHash = await bcrypt.hash(adminPass, 12);
   const facultyHash = await bcrypt.hash(facultyPass, 12);
-  const studentHash = await bcrypt.hash(studentPass, 12);
+  const studentHash = await bcrypt.hash("student123", 12);
 
   const admin = await User.create({
     username: adminUser.toLowerCase(),
@@ -42,7 +42,7 @@ export async function seedAdminIfNeeded() {
 
   const demoStudent = await Student.create({
     name: "Alex Rivera",
-    rollNumber: "CS2021-001",
+    rollNumber: demoStudentRoll,
     section: "A",
     createdBy: faculty._id,
   });
@@ -78,6 +78,7 @@ export async function seedAdminIfNeeded() {
       ...c,
       atRisk,
       anomaly,
+      releasedAt: new Date(),
       priorFinal: null,
       updatedBy: faculty._id,
     });
@@ -91,4 +92,17 @@ export async function seedAdminIfNeeded() {
   });
 
   return { admin, faculty, studentUser, demoStudent };
+}
+
+export async function restoreDemoStudentUsername() {
+  const demoRoll = "2271126";
+  const demoStudent = await Student.findOne({ rollNumber: demoRoll }).select("_id").lean();
+  if (!demoStudent) return;
+  const studentUser = await User.findOne({ role: "student", studentRef: demoStudent._id }).select("_id").lean();
+  if (!studentUser) return;
+  const studentHash = await bcrypt.hash("student123", 12);
+  await User.updateOne(
+    { _id: studentUser._id },
+    { $set: { username: "student", passwordHash: studentHash } }
+  );
 }

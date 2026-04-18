@@ -161,6 +161,7 @@ export async function createMark(req, res, next) {
       ...computed,
       atRisk,
       anomaly,
+      releasedAt: new Date(),
       priorFinal: null,
       updatedBy: req.user._id,
     });

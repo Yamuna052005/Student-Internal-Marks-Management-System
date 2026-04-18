@@ -15,6 +15,7 @@ const marksSchema = new mongoose.Schema(
     bestKey: { type: String, enum: ["internal1", "internal2"], default: "internal1" },
     atRisk: { type: Boolean, default: false, index: true },
     anomaly: { type: Boolean, default: false, index: true },
+    releasedAt: { type: Date, default: Date.now, index: true },
     priorFinal: { type: Number, default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
@@ -24,6 +25,7 @@ const marksSchema = new mongoose.Schema(
 marksSchema.index({ student: 1, subject: 1, term: 1 }, { unique: true });
 marksSchema.index({ final: -1 });
 marksSchema.index({ createdAt: -1 });
+marksSchema.index({ releasedAt: -1 });
 marksSchema.index({ student: 1, atRisk: 1 });
 marksSchema.index({ atRisk: 1, final: 1 });
 marksSchema.index({ anomaly: 1, updatedAt: -1 });

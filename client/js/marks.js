@@ -164,7 +164,10 @@ function fillStudentSelect() {
     return;
   }
   sel.innerHTML = students
-    .map((s) => `<option value="${esc(String(s._id ?? s.id ?? ""))}">${esc(s.name)}</option>`)
+    .map((s) => {
+      const sec = s.section ? ` · Sec ${s.section}` : "";
+      return `<option value="${esc(String(s._id ?? s.id ?? ""))}">${esc(s.name)}${esc(sec)}</option>`;
+    })
     .join("");
 }
 
@@ -195,56 +198,58 @@ function wire() {
 
   qsa(".calc-input").forEach((inp) => inp.addEventListener("input", livePreview));
 
-  qs("#btnExport")?.addEventListener("click", async () => {
-    try {
-      const csv = await apiCsv();
-      downloadBlob("wsimms_marks.csv", csv, "text/csv");
-      toast("good", "Exported", "CSV downloaded.");
-    } catch (e) {
-      toast("bad", "Export failed", e.message);
-    }
-  });
-
-  qs("#csvFile")?.addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    const atomic = qs("#csvStrict")?.checked ?? false;
-    try {
-      const data = await uploadCsv(f, { atomic });
-      let msg = `Rows: ${data.imported || 0}`;
-      if (data.errors?.length) msg += `. Skipped: ${data.errors.length}`;
-      toast("good", "Imported", msg);
-      await refreshTermFilter().catch(() => {});
-      await load();
-    } catch (err) {
-      toast("bad", "CSV", err.message);
-    }
-  });
-
-  qs("#jsonBulkFile")?.addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    if (!canEditMarks()) return toast("warn", "Locked", "Cannot import marks.");
-    try {
-      const text = await f.text();
-      const parsed = JSON.parse(text);
-      const marks = parsed.marks ?? parsed;
-      if (!Array.isArray(marks) || !marks.length) {
-        toast("bad", "JSON", "File must be a JSON array or { \"marks\": [...] }.");
-        return;
+  if (role === "admin" || role === "faculty") {
+    qs("#btnExport")?.addEventListener("click", async () => {
+      try {
+        const csv = await apiCsv();
+        downloadBlob("wsimms_marks.csv", csv, "text/csv");
+        toast("good", "Exported", "CSV downloaded.");
+      } catch (e) {
+        toast("bad", "Export failed", e.message);
       }
-      const data = await api("/marks/bulk", { method: "POST", body: JSON.stringify({ marks }) });
-      let msg = `Upserted: ${data.imported || 0}`;
-      if (data.errors?.length) msg += `. Issues: ${data.errors.length}`;
-      toast("good", "Bulk JSON", msg);
-      await refreshTermFilter().catch(() => {});
-      await load();
-    } catch (err) {
-      toast("bad", "JSON bulk", err.message || "Invalid JSON");
-    }
-  });
+    });
+
+    qs("#csvFile")?.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      e.target.value = "";
+      if (!f) return;
+      const atomic = qs("#csvStrict")?.checked ?? false;
+      try {
+        const data = await uploadCsv(f, { atomic });
+        let msg = `Rows: ${data.imported || 0}`;
+        if (data.errors?.length) msg += `. Skipped: ${data.errors.length}`;
+        toast("good", "Imported", msg);
+        await refreshTermFilter().catch(() => {});
+        await load();
+      } catch (err) {
+        toast("bad", "CSV", err.message);
+      }
+    });
+
+    qs("#jsonBulkFile")?.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      e.target.value = "";
+      if (!f) return;
+      if (!canEditMarks()) return toast("warn", "Locked", "Cannot import marks.");
+      try {
+        const text = await f.text();
+        const parsed = JSON.parse(text);
+        const marks = parsed.marks ?? parsed;
+        if (!Array.isArray(marks) || !marks.length) {
+          toast("bad", "JSON", "File must be a JSON array or { \"marks\": [...] }.");
+          return;
+        }
+        const data = await api("/marks/bulk", { method: "POST", body: JSON.stringify({ marks }) });
+        let msg = `Upserted: ${data.imported || 0}`;
+        if (data.errors?.length) msg += `. Issues: ${data.errors.length}`;
+        toast("good", "Bulk JSON", msg);
+        await refreshTermFilter().catch(() => {});
+        await load();
+      } catch (err) {
+        toast("bad", "JSON bulk", err.message || "Invalid JSON");
+      }
+    });
+  }
 
   qs("#btnAdd")?.addEventListener("click", () => {
     if (!canEditMarks()) return toast("warn", "Locked", "Cannot add marks.");
@@ -302,12 +307,12 @@ function livePreview() {
   const final = ((best * 0.8) + (other * 0.2)).toFixed(1);
   const bestIs = i1 >= i2 ? 1 : 2;
 
-  const b1 = qs("#previewI1Badge"); if (b1) b1.textContent = bestIs === 1 ? "★ Best (×0.80)" : "×0.20";
-  const b2 = qs("#previewI2Badge"); if (b2) b2.textContent = bestIs === 2 ? "★ Best (×0.80)" : "×0.20";
+  const b1 = qs("#previewI1Badge"); if (b1) b1.textContent = bestIs === 1 ? "★ Best internal (×0.80)" : "×0.20";
+  const b2 = qs("#previewI2Badge"); if (b2) b2.textContent = bestIs === 2 ? "★ Best internal (×0.80)" : "×0.20";
   const pc = qs("#previewCalc");
   if (pc) pc.innerHTML =
-    `Internal-${bestIs} = <strong>${best}</strong> × 0.80 = <strong>${(best * 0.8).toFixed(1)}</strong><br>` +
-    `Internal-${bestIs === 1 ? 2 : 1} = <strong>${other}</strong> × 0.20 = <strong>${(other * 0.2).toFixed(1)}</strong>`;
+    `Mid-${bestIs} + Assignment-${bestIs} = <strong>${best}</strong> × 0.80 = <strong>${(best * 0.8).toFixed(1)}</strong><br>` +
+    `Mid-${bestIs === 1 ? 2 : 1} + Assignment-${bestIs === 1 ? 2 : 1} = <strong>${other}</strong> × 0.20 = <strong>${(other * 0.2).toFixed(1)}</strong>`;
   const pf = qs("#previewFinal"); if (pf) pf.textContent = final;
 }
 
@@ -328,7 +333,7 @@ function openMarkModal() {
     mTerm.value = (state.term && state.term !== "all") ? state.term : defT;
     mTerm.disabled = false;
   }
-  ["#m1", "#as", "#m2", "#lb"].forEach((id) => { const el = qs(id); if (el) el.value = ""; });
+  ["#m1", "#as", "#m2", "#as2"].forEach((id) => { const el = qs(id); if (el) el.value = ""; });
   livePreview();
   qs("#modalMark").classList.add("open");
 }
@@ -345,7 +350,7 @@ function openEditMarkModal(id, rows) {
   const m1 = qs("#m1"); if (m1) m1.value = m.mid1 || 0;
   const as1 = qs("#as"); if (as1) as1.value = m.assignment1 || 0;
   const m2 = qs("#m2"); if (m2) m2.value = m.mid2 || 0;
-  const as2 = qs("#as2"); if (as2) as2.value = m.assignment2 || 0;
+  const as2 = qs("#as2"); if (as2) as2.value = m.assignment2 ?? m.lab ?? 0;
   livePreview();
   qs("#modalMark").classList.add("open");
   qs("#mSave").dataset.editId = id;
@@ -372,7 +377,7 @@ async function saveNewMark() {
       mid1: Number(qs("#m1")?.value || 0),
       assignment: Number(qs("#as")?.value || 0),
       mid2: Number(qs("#m2")?.value || 0),
-      lab: Number(qs("#lb")?.value || 0),
+      lab: Number(qs("#as2")?.value || 0),
     };
 
     const editId = saveBtn.dataset.editId;
@@ -432,11 +437,43 @@ async function load() {
     const rows = data.marks || [];
     const pi = qs("#pageInfo");
     if (pi) pi.textContent = `Page ${data.page} · ${data.total} total`;
+    renderSummary(data, rows);
     renderRows(rows);
     renderPager(data.page, data.limit, data.total);
   } catch (e) {
     toast("bad", "Load failed", e.message);
   }
+}
+
+function renderSummary(data, rows) {
+  const visible = rows.length;
+  const total = Number(data?.total || 0);
+  const riskCount = rows.filter((m) => {
+    const i1 = m.internal1 != null ? m.internal1 : (m.mid1 || 0) + (m.assignment1 || 0);
+    const i2 = m.internal2 != null ? m.internal2 : (m.mid2 || 0) + (m.assignment2 || 0);
+    const finalNum = Number(m.final);
+    return m.atRisk || (Number(i1) > 0 && Number(i1) < INTERNAL_REMEDIAL_RISK) || (Number(i2) > 0 && Number(i2) < INTERNAL_REMEDIAL_RISK) || (Number.isFinite(finalNum) && finalNum < FINAL_FAIL_RISK);
+  }).length;
+  const anomalyCount = rows.filter((m) => m.anomaly).length;
+  const avgFinal = visible ? (rows.reduce((sum, m) => sum + Number(m.final || 0), 0) / visible).toFixed(1) : "0.0";
+
+  const set = (id, value) => {
+    const el = qs(id);
+    if (el) el.textContent = value;
+  };
+
+  set("#marksVisibleCount", String(visible));
+  set("#marksTotalCount", String(total));
+  set("#marksRiskCount", String(riskCount));
+  set("#marksAnomalyCount", String(anomalyCount));
+  set("#marksVisibleMeta", `${visible} rows on this page`);
+  set("#marksTotalMeta", `${total} synced records in total`);
+  set("#marksRiskMeta", `${riskCount} on current page`);
+  set("#marksAnomalyMeta", `${anomalyCount} on current page`);
+  const termChip = qs("#marksTermChip");
+  if (termChip) termChip.textContent = state.term === "all" ? "All terms" : (state.term || settings.defaultTerm || "Current term");
+  const pageInfo = qs("#pageInfo");
+  if (pageInfo) pageInfo.textContent = `Page ${data.page} of ${Math.max(1, Math.ceil(total / data.limit))} · ${total} total · Avg final ${avgFinal}`;
 }
 
 function renderRows(rows) {
@@ -459,16 +496,16 @@ function renderRows(rows) {
             finalLow
               ? ` <span class="hint">Fail: final &lt; ${FINAL_FAIL_RISK}</span>`
               : internal1Low
-                ? ` <span class="hint">Remedial: I1 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
+                ? ` <span class="hint">Remedial: Internal-1 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
                 : internal2Low
-                  ? ` <span class="hint">Remedial: I2 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
+                  ? ` <span class="hint">Remedial: Internal-2 &lt; ${INTERNAL_REMEDIAL_RISK}</span>`
                 : ""
           }`
         : `<span class="badge good">OK</span>`;
     const best1 = m.bestKey === "internal1";
-    const i1Cell = `<span title="Mid-1: ${m.mid1} + Assign1: ${m.assignment1}"
+    const i1Cell = `<span title="Mid-1 (25): ${m.mid1} + Assignment-1 (5): ${m.assignment1}"
       style="${best1 ? "font-weight:700;color:var(--success,#22c55e)" : ""}">${i1}${best1 ? " ★" : ""}</span>`;
-    const i2Cell = `<span title="Mid-2: ${m.mid2} + Assign2: ${m.assignment2}"
+    const i2Cell = `<span title="Mid-2 (25): ${m.mid2} + Assignment-2 (5): ${m.assignment2}"
       style="${!best1 ? "font-weight:700;color:var(--success,#22c55e)" : ""}">${i2}${!best1 ? " ★" : ""}</span>`;
 
     return `<tr class="${m.anomaly ? "row-anomaly" : ""}" data-id="${m._id}">
@@ -575,3 +612,4 @@ function downloadBlob(name, data, mime) {
 }
 
 boot();
+

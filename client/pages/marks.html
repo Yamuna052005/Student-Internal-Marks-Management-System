@@ -4,14 +4,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Marks — WSIMMS</title>
+  <title>Marks - WSIMMS</title>
   <link rel="stylesheet" href="/css/style.css" />
   <meta name="color-scheme" content="dark" />
 </head>
 
 <body>
   <div class="app-shell" id="app">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <a class="sidebar-brand" href="/pages/dashboard.html">
         <div class="sidebar-mark">S</div>
@@ -23,332 +22,219 @@
       <div class="nav-section-label">Workspace</div>
       <nav class="nav">
         <a class="nav-link" href="/pages/dashboard.html" data-nav="dashboard">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <span>Dashboard</span>
         </a>
         <a class="nav-link active" href="/pages/marks.html" data-nav="marks">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Marks</span>
         </a>
         <a class="nav-link" href="/pages/analytics.html" data-nav="analytics" data-role="admin,faculty">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <span>Analytics</span>
         </a>
         <a class="nav-link" href="/pages/students.html" data-nav="students" data-role="admin,faculty">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Students</span>
         </a>
         <a class="nav-link" href="/pages/faculty.html" data-nav="faculty" data-role="admin">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M8 21v-2a4 4 0 0 1 3-3.87" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-3-3.87"/><path d="M8 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Faculty</span>
         </a>
         <a class="nav-link" href="/pages/remedials.html" data-nav="remedials" data-role="admin,faculty">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           <span>Remedials</span>
         </a>
         <a class="nav-link" href="/pages/settings.html" data-nav="settings">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Settings</span>
         </a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-chip">
           <strong data-who>—</strong>
-          <div class="hint">Professional Session</div>
+          <div class="hint">Academic Session</div>
         </div>
         <button type="button" class="btn ghost btn-block" data-logout>Log Out</button>
       </div>
     </aside>
 
-    <!-- Main Content -->
     <div class="app-content">
       <header class="topbar">
         <div class="topbar-left">
           <button type="button" class="btn btn-icon ghost" data-mobile-sidebar-toggle aria-label="Open menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <div style="font-weight: 600; font-family: 'Poppins'; color: var(--text-muted);">Grading System</div>
-          <span class="trend-chip warn" id="lockBanner" style="margin-left: 1rem;" hidden></span>
+          <div style="font-weight:600;font-family:'Poppins';color:var(--text-muted);">Marks Entry</div>
         </div>
         <div class="topbar-right">
-          <div id="approvalRequestWrap" hidden>
-            <button type="button" class="btn small ghost" id="btnRequestApproval">Request Approval</button>
-          </div>
           <button type="button" class="btn small ghost" data-theme-toggle>Theme</button>
         </div>
       </header>
 
       <main class="main ui-reveal marks-main">
-        <header class="marks-hero">
-          <div class="marks-hero-copy">
-            <p style="color: var(--primary); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Academic Records</p>
-            <h1 style="font-size: clamp(1.65rem, 4vw, 2.25rem); letter-spacing: -0.02em;">Marks Management</h1>
-            <p class="marks-hero-text" style="color: var(--text-muted);">Weighted finals (80/20). <strong>Remedial</strong> is triggered when <strong>Internal-1 &lt; 9</strong>, <strong>Internal-2 &lt; 9</strong>, or <strong>Final &lt; 16</strong>. Final below 16 is treated as a fail condition. Settings &ldquo;risk threshold&rdquo; is for analytics only.</p>
+        <section style="margin-bottom:2rem;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:2rem;">
+            <div>
+              <p style="color:var(--primary);font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Marks Management</p>
+              <h1 style="font-size:2.5rem;letter-spacing:-0.02em;">Marks</h1>
+              <p style="color:var(--text-muted);">Add, edit, and review student marks.</p>
+            </div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;" data-role="admin,faculty">
+              <button type="button" class="btn primary" id="btnAdd" data-role="admin,faculty">Add Marks</button>
+              <button type="button" class="btn ghost" id="btnExport">Export CSV</button>
+            </div>
           </div>
-          <div class="marks-hero-actions" data-role="admin,faculty">
-            <div class="marks-hero-buttons">
-            <button type="button" class="btn ghost" id="btnExport">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-              Export CSV
-            </button>
-            <label class="btn ghost" id="lblCsv">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              CSV
-              <input type="file" id="csvFile" accept=".csv,text/csv" class="visually-hidden" />
-            </label>
-            <label class="btn ghost" id="lblJsonBulk">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              JSON bulk
-              <input type="file" id="jsonBulkFile" accept=".json,application/json" class="visually-hidden" />
-            </label>
-            <button type="button" class="btn primary" id="btnAdd">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              Add Marks
-            </button>
+
+          <div id="lockBanner" class="alert warn" hidden style="margin-bottom:1rem;"></div>
+
+          <div class="card" style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem;">
+              <div>
+                <h2 style="font-size:1.15rem;margin-bottom:0.25rem;">Marks Records</h2>
+                <p id="pageInfo" class="hint">Loading...</p>
+              </div>
+              <span class="trend-chip good" id="marksTermChip">Current term</span>
             </div>
-            <label class="hint marks-hero-hint" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; max-width: 22rem; text-align: right;">
-              <input type="checkbox" id="csvStrict" />
-              Strict CSV: if any row fails validation, do not import the file (server &amp; mock)
-            </label>
+
+            <div class="grid cols-4" style="margin-bottom:1rem;">
+              <div class="card" style="padding:1rem;">
+                <label class="field-label" for="termFilter">Term</label>
+                <select id="termFilter" class="input"></select>
+              </div>
+              <div class="card" style="padding:1rem;">
+                <label class="field-label" for="search">Search</label>
+                <input id="search" class="input" placeholder="Student or subject..." />
+              </div>
+              <div class="card" style="padding:1rem;display:flex;flex-direction:column;justify-content:flex-end;gap:0.5rem;">
+                <label class="inline-check"><input type="checkbox" id="onlyRisk" /> Only at risk</label>
+                <label class="inline-check"><input type="checkbox" id="onlyAnomaly" /> Only anomalies</label>
+              </div>
+              <div class="card" style="padding:1rem;display:flex;flex-direction:column;justify-content:flex-end;gap:0.5rem;" data-role="admin,faculty">
+                <label class="inline-check"><input type="checkbox" id="csvStrict" /> Strict CSV import</label>
+                <label class="btn ghost" style="display:block;text-align:center;cursor:pointer;">
+                  Import CSV
+                  <input id="csvFile" type="file" accept=".csv,text/csv" hidden />
+                </label>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;" data-role="admin,faculty">
+              <label class="btn ghost" style="cursor:pointer;">
+                JSON bulk upload
+                <input id="jsonBulkFile" type="file" accept=".json,application/json" hidden />
+              </label>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Subject</th>
+                    <th>Term</th>
+                    <th>Internal-1</th>
+                    <th>Internal-2</th>
+                    <th>Final</th>
+                    <th>Status</th>
+                    <th data-role="admin,faculty">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+              </table>
+            </div>
+
+            <div id="pager" style="display:flex;justify-content:center;gap:1rem;align-items:center;padding:1.25rem 0 0;"></div>
           </div>
-        </header>
-
-        <div class="marks-page-layout">
-          <!-- Filter Column -->
-          <aside>
-            <div class="card marks-filter-sticky" style="position: sticky; top: 88px;">
-              <h3 style="font-size: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
-                Filters
-                <span class="hint" id="pageInfo">—</span>
-              </h3>
-              <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div>
-                   <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.5rem;">Academic term</label>
-                   <select class="input" id="termFilter" data-role="admin,faculty"></select>
-                   <p class="hint" style="margin-top: 0.35rem;">Default comes from Settings. Choose &quot;All terms&quot; for full history.</p>
-                </div>
-                <div>
-                   <label style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); display: block; margin-bottom: 0.5rem;">Search</label>
-                   <input class="input" id="search" placeholder="Student or subject..." />
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
-                    <input type="checkbox" id="onlyRisk" /> Show At Risk
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
-                    <input type="checkbox" id="onlyAnomaly" /> Show Anomalies
-                  </label>
-                </div>
-                <div style="padding: 1rem; background: var(--bg-accent); border-radius: 8px; border: 1px solid var(--border);">
-                  <p style="font-size: 0.8rem; color: var(--text-muted);">
-                    <strong>80/20 Model:</strong> Best internal is weighted at 80% while the other contributes 20%.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <!-- Records Table -->
-          <section>
-            <div class="card" id="marksCard" style="padding: 0; overflow: hidden;">
-              <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
-                 <h2 style="font-size: 1.1rem;">Academic Records</h2>
-              </div>
-              <div class="marks-table-scroll">
-                <style>
-                  table { width: 100%; border-collapse: collapse; text-align: left; }
-                  th { padding: 1rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); background: rgba(255,255,255,0.02); }
-                  td { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
-                  tbody tr:hover { background: rgba(255,255,255,0.02); }
-                </style>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Subject</th>
-                      <th>Term</th>
-                      <th>Internal-1</th>
-                      <th>Internal-2</th>
-                      <th>Final (80/20)</th>
-                      <th>Signals</th>
-                      <th data-role="admin,faculty" style="text-align: right; padding-right: 1.5rem;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbody"></tbody>
-                </table>
-              </div>
-              <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border);" id="pager"></div>
-            </div>
-          </section>
-        </div>
+        </section>
       </main>
     </div>
   </div>
 
-  <!-- Modals -->
-  <style>
-    .marks-hero {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 1rem 1.5rem;
-      margin-bottom: 1.75rem;
-    }
-    .marks-hero-copy {
-      flex: 1 1 34rem;
-      min-width: 0;
-      max-width: 68rem;
-    }
-    .marks-hero-text {
-      max-width: 100%;
-      overflow-wrap: anywhere;
-    }
-    .marks-hero-actions {
-      display: flex;
-      flex: 0 1 42rem;
-      min-width: min(100%, 22rem);
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 0.5rem;
-    }
-    .marks-hero-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      justify-content: flex-end;
-      width: 100%;
-    }
-    .marks-hero-hint {
-      width: 100%;
-      justify-content: flex-end;
-    }
-    .marks-modal { max-width: min(560px, 100%); }
-    .calc-panel { background: var(--bg-surface); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; }
-    .calc-panel-accent { border-color: var(--primary); background: var(--bg-accent); }
-    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .calc-summary { font-size: 0.85rem; color: var(--text-muted); }
-    .calc-final-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-    .calc-final-value { font-size: 1.5rem; color: var(--primary); }
-    .table-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-    .marks-modal-actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
-    @media (max-width: 540px) {
-      .marks-hero-actions {
-        min-width: 100%;
-        align-items: stretch;
-      }
-      .marks-hero-buttons {
-        justify-content: stretch;
-      }
-      .marks-hero-buttons .btn {
-        width: 100%;
-      }
-      .marks-hero-hint {
-        justify-content: flex-start;
-        text-align: left !important;
-      }
-      .calc-grid { grid-template-columns: 1fr; }
-      .calc-panel { padding: 1rem; margin-bottom: 1rem; }
-      .marks-modal-actions { flex-direction: column; gap: 0.75rem; }
-      .marks-modal-actions .btn { width: 100%; }
-    }
-  </style>
-
   <div class="modal-backdrop" id="modalMark">
-    <div class="modal marks-modal">
+    <div class="modal" style="max-width:760px;">
       <div class="modal-h">
-        <h2 id="modalTitle" style="font-size: 1.25rem;">Add Marks</h2>
+        <h2 id="modalTitle">Add Marks</h2>
         <button type="button" class="btn small ghost" data-close>&times;</button>
       </div>
       <div class="modal-b">
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="grid cols-2">
           <div class="field">
-            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">Student</label>
-            <select class="input" id="mStudent"></select>
+            <label class="field-label">Student</label>
+            <select id="mStudent" class="input"></select>
           </div>
           <div class="field">
-             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">Subject</label>
-             <input class="input" id="mSubject" placeholder="e.g. Data Structures" />
+            <label class="field-label">Subject</label>
+            <input id="mSubject" class="input" />
           </div>
-          <div class="field" data-role="admin,faculty">
-             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">Term</label>
-             <input class="input" id="mTerm" placeholder="e.g. 2025-T1" />
-             <p class="hint" style="margin-top: 0.35rem;">One row per student + subject + term. Editing does not change term.</p>
+          <div class="field">
+            <label class="field-label">Term</label>
+            <input id="mTerm" class="input" />
           </div>
+          <div class="field">
+            <label class="field-label">Mid-1 (25)</label>
+            <input id="m1" class="input calc-input" type="number" />
+          </div>
+          <div class="field">
+            <label class="field-label">Assignment-1 (5)</label>
+            <input id="as" class="input calc-input" type="number" />
+          </div>
+          <div class="field">
+            <label class="field-label">Mid-2 (25)</label>
+            <input id="m2" class="input calc-input" type="number" />
+          </div>
+          <div class="field">
+            <label class="field-label">Assignment-2 (5)</label>
+            <input id="as2" class="input calc-input" type="number" />
+          </div>
+        </div>
 
-          <div class="calc-panel">
-            <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">Assessment Pair 1</h4>
-            <div class="calc-grid">
-               <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-1 (Max 20)</label>
-                  <input class="input calc-input" id="m1" type="number" min="0" max="20" placeholder="0" />
-               </div>
-               <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Assignment (Max 5)</label>
-                  <input class="input calc-input" id="as" type="number" min="0" max="5" placeholder="0" />
-               </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3 style="margin-bottom:0.75rem;">Auto calculation preview</h3>
+          <div class="grid cols-2">
+            <div>
+              <div class="hint">Internal 1</div>
+              <strong id="previewI1">0</strong>
+              <div id="previewI1Badge" class="hint"></div>
             </div>
-            <div class="calc-summary">Total: <strong id="previewI1">—</strong> <span id="previewI1Badge"></span></div>
-          </div>
-
-          <div class="calc-panel">
-            <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; color: var(--accent);">Assessment Pair 2</h4>
-            <div class="calc-grid">
-               <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Mid-2 (Max 20)</label>
-                  <input class="input calc-input" id="m2" type="number" min="0" max="20" placeholder="0" />
-               </div>
-               <div>
-                  <label style="font-size: 0.75rem; color: var(--text-dim);">Assignment / Practical (Max 5)</label>
-                  <input class="input calc-input" id="lb" type="number" min="0" max="5" placeholder="0" />
-               </div>
-            </div>
-            <div class="calc-summary">Total: <strong id="previewI2">—</strong> <span id="previewI2Badge"></span></div>
-          </div>
-
-          <div class="calc-panel calc-panel-accent">
-            <h4 style="margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--primary);">Computed Result</h4>
-            <p id="previewCalc" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Enter scores to see the 80/20 weighting.</p>
-            <div class="calc-final-row">
-               <span>Final Marks</span>
-               <strong id="previewFinal" class="calc-final-value">—</strong>
+            <div>
+              <div class="hint">Internal 2</div>
+              <strong id="previewI2">0</strong>
+              <div id="previewI2Badge" class="hint"></div>
             </div>
           </div>
+          <p id="previewCalc" class="hint" style="margin-top:0.75rem;">Enter scores above to see the automatic calculation.</p>
+          <h3 style="margin:1rem 0 0.35rem;">Final</h3>
+          <strong id="previewFinal">—</strong>
+        </div>
 
-          <div class="marks-modal-actions">
-            <button type="button" class="btn primary btn-block" id="mSave">Save Record</button>
-            <button type="button" class="btn ghost btn-block" data-close>Cancel</button>
-          </div>
+        <div style="display:flex;gap:1rem;margin-top:1rem;">
+          <button type="button" class="btn primary btn-block" id="mSave">Save Marks</button>
+          <button type="button" class="btn ghost btn-block" data-close>Cancel</button>
         </div>
       </div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="modalRem">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal" style="max-width:520px;">
       <div class="modal-h">
-        <h2>Remedial Session</h2>
+        <h2>Record Remedial</h2>
         <button type="button" class="btn small ghost" data-close>&times;</button>
       </div>
       <div class="modal-b">
-        <p class="hint" id="remInfo" style="margin-bottom: 1.5rem;"></p>
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-          <div class="field">
-            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem;">After Marks</label>
-            <input class="input" id="remAfter" type="number" step="0.1" />
-          </div>
-          <div class="field">
-            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem;">Notes</label>
-            <textarea class="input" id="remNotes" rows="3"></textarea>
-          </div>
-          <div style="display: flex; gap: 1rem;">
-            <button type="button" class="btn primary btn-block" id="remSave">Save Remedial</button>
-            <button type="button" class="btn ghost btn-block" data-close>Cancel</button>
-          </div>
+        <div id="remInfo" class="hint" style="margin-bottom:1rem;"></div>
+        <div class="field">
+          <label class="field-label">After Final</label>
+          <input id="remAfter" class="input" type="number" />
+        </div>
+        <div class="field">
+          <label class="field-label">Notes</label>
+          <textarea id="remNotes" class="input" rows="4"></textarea>
+        </div>
+        <div style="display:flex;gap:1rem;margin-top:1rem;">
+          <button type="button" class="btn primary btn-block" id="remSave">Save Remedial</button>
+          <button type="button" class="btn ghost btn-block" data-close>Cancel</button>
         </div>
       </div>
     </div>
@@ -356,5 +242,4 @@
 
   <script type="module" src="/js/marks.js"></script>
 </body>
-
 </html>

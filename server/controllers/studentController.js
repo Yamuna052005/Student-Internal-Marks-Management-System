@@ -14,6 +14,7 @@ export async function listStudents(req, res, next) {
           $or: [
             { name: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
             { rollNumber: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
+            { section: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
           ],
         }
       : {};
@@ -76,7 +77,6 @@ export async function updateStudent(req, res, next) {
     const st = await Student.findById(id);
     if (!st) return res.status(404).json({ message: "Student not found" });
 
-    const oldRoll = st.rollNumber;
     if (name != null) st.name = String(name).trim();
     if (rollNumber != null) st.rollNumber = String(rollNumber).trim();
     if (section != null) st.section = String(section).trim();
@@ -85,10 +85,8 @@ export async function updateStudent(req, res, next) {
     // Sync to User
     const user = await User.findOne({ studentRef: st._id });
     if (user) {
-      if (name != null) {
-        user.name = st.name;
-        user.username = st.name.toLowerCase().replace(/\s+/g, "");
-      }
+      if (name != null) user.name = st.name;
+      user.username = st.name.toLowerCase().replace(/\s+/g, "");
       await user.save();
     }
 

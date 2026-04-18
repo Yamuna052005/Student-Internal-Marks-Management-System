@@ -27,8 +27,8 @@ export async function listUsers(req, res, next) {
 export async function createUser(req, res, next) {
   try {
     const { username, name, email, password, role, rollNumber, section, facultyId } = req.body || {};
-    if (!username || !name || !password || !role) {
-      return res.status(400).json({ message: "username, name, password, role required" });
+    if (!username || !name || !role) {
+      return res.status(400).json({ message: "username, name, role required" });
     }
     if (!["admin", "faculty", "student"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
@@ -36,7 +36,11 @@ export async function createUser(req, res, next) {
     const exists = await User.findOne({ username: String(username).trim().toLowerCase() });
     if (exists) return res.status(409).json({ message: "Username already exists" });
 
-    const passwordHash = await bcrypt.hash(String(password), 12);
+    const finalPassword = password || (role === "student" ? "student123" : null);
+    if (!finalPassword) {
+      return res.status(400).json({ message: "password required" });
+    }
+    const passwordHash = await bcrypt.hash(String(finalPassword), 12);
 
     let studentRef;
     if (role === "student") {
@@ -48,12 +52,12 @@ export async function createUser(req, res, next) {
         }
         rosterOwner = fac._id;
       }
-      const st = await Student.create({
-        name: String(name).trim(),
-        rollNumber: rollNumber != null ? String(rollNumber).trim() : "",
-        section: section != null ? String(section).trim() : "",
-        createdBy: rosterOwner,
-      });
+        const st = await Student.create({
+          name: String(name).trim(),
+          rollNumber: rollNumber != null ? String(rollNumber).trim() : "",
+          section: section != null ? String(section).trim() : "",
+          createdBy: rosterOwner,
+        });
       studentRef = st._id;
     }
 
@@ -137,6 +141,7 @@ export async function updateUser(req, res, next) {
             st.createdBy = fac._id;
           }
           await st.save();
+          user.username = st.name.toLowerCase().replace(/\s+/g, "");
         }
       }
     }

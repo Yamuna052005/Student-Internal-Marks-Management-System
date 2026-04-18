@@ -32,6 +32,8 @@ function enrichMark(m, settings) {
     bestKey: norm.bestKey,
     atRisk: norm.atRisk,
     anomaly: norm.anomaly,
+    releasedAt: norm.releasedAt,
+    createdAt: norm.createdAt,
     updatedAt: norm.updatedAt,
   };
 }

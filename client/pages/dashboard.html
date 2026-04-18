@@ -4,14 +4,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard — WSIMMS</title>
+  <title>Dashboard - WSIMMS</title>
   <link rel="stylesheet" href="/css/style.css" />
   <meta name="color-scheme" content="dark" />
 </head>
 
 <body>
   <div class="app-shell" id="app">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <a class="sidebar-brand" href="/pages/dashboard.html">
         <div class="sidebar-mark">S</div>
@@ -39,11 +38,7 @@
           <span>Students</span>
         </a>
         <a class="nav-link" href="/pages/faculty.html" data-nav="faculty" data-role="admin">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M4 21v-2a4 4 0 0 1 3-3.87" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-3-3.87"/><path d="M8 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Faculty</span>
         </a>
         <a class="nav-link" href="/pages/remedials.html" data-nav="remedials" data-role="admin,faculty">
@@ -64,7 +59,6 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
     <div class="app-content">
       <header class="topbar">
         <div class="topbar-left">
@@ -79,10 +73,8 @@
       </header>
 
       <main class="main ui-reveal dashboard-main">
-
-        <!-- ── Hero ── -->
         <section style="margin-bottom:3rem">
-          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2rem;gap:1rem;flex-wrap:wrap;">
             <div>
               <p style="color:var(--primary);font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem">System Pulse</p>
               <h1 id="heroGreeting" style="font-size:2.5rem;letter-spacing:-0.02em">Dashboard</h1>
@@ -91,9 +83,7 @@
             <div class="trend-chip good" id="heroStatus" style="padding:0.5rem 1rem;font-size:0.9rem">Operational</div>
           </div>
 
-          <!-- KPI cards — labels filled by JS per role -->
           <div class="grid cols-4">
-
             <div class="stat-card" id="kpiStudentsCard">
               <div class="card-inner">
                 <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
@@ -106,7 +96,6 @@
                 </div>
               </div>
             </div>
-
             <div class="stat-card" id="kpiRecordsCard">
               <div class="card-inner">
                 <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
@@ -119,7 +108,6 @@
                 </div>
               </div>
             </div>
-
             <div class="stat-card" id="kpiRiskCard">
               <div class="card-inner">
                 <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
@@ -132,7 +120,6 @@
                 </div>
               </div>
             </div>
-
             <div class="stat-card" id="kpiAnomCard">
               <div class="card-inner">
                 <div class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
@@ -145,7 +132,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </section>
 
@@ -169,45 +155,107 @@
           </div>
         </section>
 
-        <!-- ── STUDENT-ONLY section ── -->
+        <section id="staffGrievanceSection" style="margin-bottom:2rem" data-role="admin,faculty">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
+              <div>
+                <h2 style="font-size:1.1rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.5rem">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  Student Grievances
+                </h2>
+                <p class="hint" id="staffGrievanceMessage">Review complaints submitted against released marks and update their status.</p>
+              </div>
+              <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                <div class="trend-chip warn">Open <strong id="grievanceOpenCount">0</strong></div>
+                <div class="trend-chip good">Resolved <strong id="grievanceResolvedCount">0</strong></div>
+                <div class="trend-chip bad">Rejected <strong id="grievanceRejectedCount">0</strong></div>
+              </div>
+            </div>
+
+            <div class="grid cols-3" style="margin-bottom:1rem;">
+              <div class="field">
+                <label class="field-label">Status filter</label>
+                <select class="input" id="staffGrievanceStatus">
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="under_review">Under review</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Search</label>
+                <input class="input" id="staffGrievanceSearch" placeholder="Student, roll number, subject, or term" />
+              </div>
+              <div class="field" style="display:flex;align-items:flex-end;">
+                <button type="button" class="btn primary" id="staffGrievanceRefresh">Refresh list</button>
+              </div>
+            </div>
+
+            <div id="staffGrievanceList" class="list-stack"></div>
+          </div>
+        </section>
+
         <section id="studentSection" style="margin-bottom:2rem">
           <div class="card" style="margin-bottom:1.25rem">
             <h2 style="font-size:1.15rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.6rem">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-              Year → Semester → Subjects → Marks
+              Year -> Semester -> Subjects -> Marks
             </h2>
-            <p class="hint" style="margin-bottom:1rem">Flow: Year → Semester → Subjects → Marks (from term codes such as 2025-T1). Each subject lists components, internals (I1/I2), and final; Internal-1 or Internal-2 below 9 is flagged for remedial support.</p>
+            <p class="hint" style="margin-bottom:1rem">Flow: Year -> Semester -> Subjects -> Marks. Each subject lists Mid-1 (25), Assignment-1 (5), Mid-2 (25), Assignment-2 (5), internal totals, and final.</p>
             <div id="academicReportTree" class="academic-tree"></div>
-            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-              <a href="/pages/marks.html" class="btn ghost" style="font-size:0.85rem">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Open marks table
-              </a>
-            </div>
           </div>
           <div class="card">
             <h2 style="font-size:1.1rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.5rem">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               Remedial
             </h2>
-            <p class="hint" style="margin-bottom:1rem">Subjects where your <strong>final mark is below 16</strong> or <strong>Internal-1 / Internal-2 is below 9</strong>, plus any remedial sessions recorded for you.</p>
+            <p class="hint" style="margin-bottom:1rem">Subjects where your final mark is below 16 or Internal-1 (Mid-1 + Assignment-1) / Internal-2 (Mid-2 + Assignment-2) is below 9, plus any remedial sessions recorded for you.</p>
             <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Final mark under 16</h3>
             <div id="studentLowFinalList" class="list-stack" style="margin-bottom:1.25rem"></div>
-            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Internal marks below 9 (I1 or I2)</h3>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Internal marks below 9 (Internal-1 or Internal-2)</h3>
             <div id="studentInternalRiskList" class="list-stack" style="margin-bottom:1.25rem"></div>
             <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Your remedial sessions</h3>
             <div id="studentRemedialList" class="list-stack"></div>
           </div>
+          <div class="card" id="studentGrievanceCard">
+            <h2 style="font-size:1.1rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.5rem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Mark Grievance
+            </h2>
+            <p class="hint" style="margin-bottom:1rem">Raise one formal complaint per mark entry within 3 days of release. After that window closes, the button is disabled for that mark.</p>
+            <div id="studentGrievanceAlert" class="hint" style="margin-bottom:1rem"></div>
+            <form id="studentGrievanceForm" style="display:grid;gap:0.85rem;margin-bottom:1.25rem">
+              <label style="display:grid;gap:0.4rem">
+                <span class="hint" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Subject mark</span>
+                <select class="input" id="grievanceMarkSelect"></select>
+              </label>
+              <label style="display:grid;gap:0.4rem">
+                <span class="hint" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Justification</span>
+                <textarea class="input" id="grievanceJustification" rows="4" placeholder="Explain why the mark appears incorrect, e.g. missing answers, wrong total, or wrong entry."></textarea>
+              </label>
+              <label style="display:grid;gap:0.4rem">
+                <span class="hint" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Supporting details</span>
+                <textarea class="input" id="grievanceSupport" rows="4" placeholder="Add evidence details, page references, or any other context."></textarea>
+              </label>
+              <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                <button type="submit" class="btn primary" id="grievanceSubmitBtn">Submit grievance</button>
+                <button type="button" class="btn ghost" id="grievanceResetBtn">Reset</button>
+                <span class="hint" id="grievanceDeadlineHint"></span>
+              </div>
+            </form>
+            <h3 class="hint" style="font-size:0.75rem;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.06em">Your grievance history</h3>
+            <div id="studentGrievanceList" class="list-stack"></div>
+          </div>
         </section>
 
-        <!-- ── STAFF-ONLY sections ── -->
         <section id="staffHighlights" class="grid cols-2" style="margin-bottom:2rem">
           <div class="card" style="display:flex;flex-direction:column">
             <h2 style="font-size:1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
               Top Performers
             </h2>
-            <p class="hint" style="margin-bottom:1rem">Ranked by final among marks at or above the pass mark (from Settings).</p>
+            <p class="hint" style="margin-bottom:1rem">Ranked by final among marks at or above the pass mark.</p>
             <div class="list-stack" id="topList"></div>
           </div>
           <div class="card">
@@ -227,27 +275,17 @@
           </div>
         </section>
 
-        <section class="grid cols-1" id="predictiveSection" style="margin-bottom:2rem">
-          <div class="card">
-            <h2 style="font-size:1.1rem;margin-bottom:0.35rem">Predictive risk (multi-subject)</h2>
-            <p class="hint" style="margin-bottom:1.25rem">Combines course averages, breadth of weak subjects, and recorded declines vs prior finals.</p>
-            <div class="list-stack" id="predictiveList"></div>
-          </div>
-        </section>
-
-        <!-- Activity feed: admin only (removed for faculty/student in dashboard.js) -->
         <section id="activitySection" style="margin-bottom:2rem">
           <div class="card">
             <h2 style="font-size:1.1rem;margin-bottom:1.5rem">Recent Activity Feed</h2>
             <div class="list-stack" id="actList"></div>
           </div>
         </section>
-
       </main>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script type="module" src="/js/dashboard.js"></script>
 </body>
-
 </html>

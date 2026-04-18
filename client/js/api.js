@@ -82,10 +82,8 @@ async function mockApi(path, options = {}) {
   // ── AUTH ──────────────────────────────────────────────────────────────────
   if (cleanPath === "/auth/login") {
     const { username, password } = JSON.parse(options.body);
-    const user = db.users.find(u => u.username === username);
+    const user = (db.users || []).find((u) => String(u.username || "").trim().toLowerCase() === String(username || "").trim().toLowerCase());
     if (!user) throw new Error("Invalid credentials");
-    
-    // Check against custom password or a legacy fallback
     const validPass = user.password || `${username}123`;
     if (password === validPass) {
       return { ok: true, user: enrichUserRow(user), token: "mock_jwt_token" };
@@ -183,32 +181,20 @@ async function mockApi(path, options = {}) {
     if (options.method === "POST") {
       const payload = JSON.parse(options.body || "{}");
       const uid = "u" + Date.now();
+      if (!payload.username) throw new Error("username required");
+      if ((db.users || []).some((u) => u.username === payload.username)) {
+        throw new Error("Username already exists");
+      }
+      if (payload.role === "student" && !payload.password) payload.password = "student123";
       const newUser = {
         _id: uid,
-        username: String(payload.username || "").trim().toLowerCase(),
+        username: payload.username,
         name: payload.name,
         role: payload.role,
         email: payload.email,
       };
       if (payload.password) newUser.password = String(payload.password);
       db.users = db.users || [];
-      if (payload.role === "student") {
-        const sid = "s" + Date.now();
-        let createdBy = getUser()?._id || db.users.find((x) => x.role === "admin")?._id || uid;
-        if (payload.facultyId) {
-          const fac = db.users.find((x) => x._id === payload.facultyId && x.role === "faculty");
-          if (fac) createdBy = fac._id;
-        }
-        db.students = db.students || [];
-        db.students.push({
-          _id: sid,
-          name: payload.name || payload.username,
-          rollNumber: payload.rollNumber != null ? String(payload.rollNumber) : "",
-          section: payload.section != null ? String(payload.section) : "",
-          createdBy,
-        });
-        newUser.studentRef = sid;
-      }
       db.users.push(newUser);
       saveDb(db);
       return { user: enrichUserRow(newUser) };
@@ -220,44 +206,8 @@ async function mockApi(path, options = {}) {
         const idx = (db.users || []).findIndex((u) => u._id === id);
         if (idx < 0) throw new Error("User not found");
         const prev = db.users[idx];
-        const { rollNumber: _r, section: _s, facultyId: _f, password: pwdPatch, ...userPatch } = payload;
-        const merged = { ...prev, ...userPatch };
-        if (pwdPatch) merged.password = String(pwdPatch);
-        if (payload.role != null && payload.role !== "student" && prev.role === "student") {
-          merged.studentRef = undefined;
-        }
-        if (payload.role != null) merged.role = payload.role;
-        if (merged.role === "student" && !merged.studentRef) {
-          const sid = "s" + Date.now();
-          let createdBy = getUser()?._id || db.users.find((x) => x.role === "admin")?._id;
-          if (payload.facultyId) {
-            const fac = db.users.find((x) => x._id === payload.facultyId && x.role === "faculty");
-            if (fac) createdBy = fac._id;
-          }
-          db.students = db.students || [];
-          db.students.push({
-            _id: sid,
-            name: merged.name,
-            rollNumber: payload.rollNumber != null ? String(payload.rollNumber) : "",
-            section: payload.section != null ? String(payload.section) : "",
-            createdBy,
-          });
-          merged.studentRef = sid;
-        }
-        if (merged.role === "student" && merged.studentRef) {
-          const si = (db.students || []).findIndex((s) => s._id === merged.studentRef);
-          if (si >= 0) {
-            const st = { ...db.students[si] };
-            st.name = merged.name;
-            if (payload.rollNumber !== undefined) st.rollNumber = payload.rollNumber != null ? String(payload.rollNumber) : "";
-            if (payload.section !== undefined) st.section = payload.section != null ? String(payload.section) : "";
-            if (payload.facultyId) {
-              const fac = db.users.find((x) => x._id === payload.facultyId && x.role === "faculty");
-              if (fac) st.createdBy = fac._id;
-            }
-            db.students[si] = st;
-          }
-        }
+        const merged = { ...prev, ...payload };
+        if (payload.password) merged.password = String(payload.password);
         db.users[idx] = merged;
         saveDb(db);
         return { user: enrichUserRow(merged) };
@@ -383,6 +333,113 @@ async function mockApi(path, options = {}) {
   }
 
   // ── MARKS ─────────────────────────────────────────────────────────────────
+  if (cleanPath.startsWith("/grievances")) {
+    const grievanceId = cleanPath.split("/")[2];
+    const openStatuses = new Set(["pending", "under_review"]);
+    const resolveStudentId = (u) => {
+      const ref = u?.studentId || u?.studentRef;
+      if (ref && typeof ref === "object") return String(ref._id || "");
+      return ref != null ? String(ref) : "";
+    };
+    const resolveReleaseDate = (mark) => {
+      const raw = mark?.releasedAt || mark?.createdAt || mark?.updatedAt;
+      const d = raw ? new Date(raw) : null;
+      return d && !Number.isNaN(d.getTime()) ? d : null;
+    };
+    const deadlineForMark = (mark) => {
+      const release = resolveReleaseDate(mark);
+      return release ? new Date(release.getTime() + 3 * 24 * 60 * 60 * 1000) : null;
+    };
+    const normalize = (item) => ({
+      ...item,
+      deadlineExpired: item.deadlineAt ? Date.now() > new Date(item.deadlineAt).getTime() : true,
+    });
+
+    if (cleanPath === "/grievances" && String(options.method || "GET").toUpperCase() === "POST") {
+      const user = getUser();
+      const studentId = resolveStudentId(user);
+      if (user?.role !== "student") throw new Error("Only students can raise mark grievances.");
+      const payload = JSON.parse(options.body || "{}");
+      const marksId = String(payload.marksId || payload.marks || "").trim();
+      const justification = String(payload.justification || "").trim();
+      const supportingDetails = String(payload.supportingDetails || "").trim();
+      if (justification.length < 10) throw new Error("Justification must be at least 10 characters.");
+      const mark = (db.marks || []).find((m) => String(m._id) === String(marksId));
+      if (!mark) throw new Error("Marks not found");
+      if (String(mark.studentId) !== String(studentId)) throw new Error("Not allowed");
+      const deadlineAt = deadlineForMark(mark);
+      if (!deadlineAt || Date.now() > deadlineAt.getTime()) {
+        throw new Error("The 3-day grievance window for this mark has closed.");
+      }
+      const existing = (db.grievances || []).find(
+        (g) => String(g.student) === String(studentId) && String(g.marks) === String(mark._id) && openStatuses.has(g.status)
+      );
+      if (existing) throw new Error("A grievance for this mark is already pending or under review.");
+      const releasedAt = resolveReleaseDate(mark);
+      const row = {
+        _id: "g" + Date.now(),
+        student: studentId,
+        marks: mark._id,
+        subject: mark.subject,
+        term: mark.term || db.settings?.defaultTerm || "2025-T1",
+        releasedAt: releasedAt ? releasedAt.toISOString() : new Date().toISOString(),
+        deadlineAt: deadlineAt.toISOString(),
+        justification,
+        supportingDetails,
+        status: "pending",
+        submittedBy: user._id,
+        reviewedBy: null,
+        reviewedAt: null,
+        resolutionNote: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.grievances = db.grievances || [];
+      db.grievances.push(row);
+      saveDb(db);
+      return { grievance: normalize(row) };
+    }
+
+    if (grievanceId && String(options.method || "GET").toUpperCase() === "PATCH") {
+      const user = getUser();
+      if (user?.role === "student") throw new Error("Not allowed");
+      const idx = (db.grievances || []).findIndex((g) => g._id === grievanceId);
+      if (idx < 0) throw new Error("Grievance not found");
+      const payload = JSON.parse(options.body || "{}");
+      const nextStatus = String(payload.status || "").trim();
+      if (!["pending", "under_review", "resolved", "rejected"].includes(nextStatus)) throw new Error("Invalid grievance status.");
+      db.grievances[idx] = {
+        ...db.grievances[idx],
+        status: nextStatus,
+        resolutionNote: String(payload.resolutionNote || "").trim(),
+        reviewedBy: user ? { _id: user._id, name: user.name, username: user.username } : null,
+        reviewedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      saveDb(db);
+      return { grievance: normalize(db.grievances[idx]) };
+    }
+
+    const user = getUser();
+    const studentId = resolveStudentId(user);
+    const grievances = (user?.role === "student")
+      ? (db.grievances || []).filter((g) => String(g.student) === String(studentId))
+      : (db.grievances || []);
+    return {
+      grievances: grievances
+        .map((g) => {
+          const mark = (db.marks || []).find((m) => String(m._id) === String(g.marks));
+          const student = (db.students || []).find((s) => String(s._id) === String(g.student));
+          return normalize({
+            ...g,
+            student: student || null,
+            marks: mark ? { ...mark, student: student || null } : null,
+          });
+        })
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))),
+    };
+  }
+
   if (cleanPath.startsWith("/marks")) {
     const markId = cleanPath.split("/")[2]; // /marks/:id
     const user = getUser();
@@ -471,6 +528,7 @@ async function mockApi(path, options = {}) {
             bestKey: calc.bestKey,
             atRisk: checkRisk(calc.final, settings.riskThreshold || 16, calc.internal1, calc.internal2),
             anomaly: checkAnomaly({ ...body, final: calc.final }, priorFinal),
+            releasedAt: now,
             updatedAt: now,
           };
           if (j < 0) {
@@ -509,6 +567,7 @@ async function mockApi(path, options = {}) {
         bestKey: calc.bestKey,
         atRisk: checkRisk(calc.final, settings.riskThreshold || 16, calc.internal1, calc.internal2),
         anomaly: checkAnomaly(payload),
+        releasedAt: now,
         createdAt: now,
         updatedAt: now,
       };
@@ -789,7 +848,7 @@ async function mockApi(path, options = {}) {
     return { activity: db.activity || [] };
   }
 
-  return { error: "Not found", marks: [], students: [], remedials: [], users: [] };
+  return { error: "Not found", marks: [], students: [], remedials: [], grievances: [], users: [] };
 }
 
 export async function api(path, options = {}) {
@@ -870,8 +929,8 @@ export async function uploadCsv(file, { atomic = false } = {}) {
             subject: row.subject,
             mid1: Number(row.mid1 || 0),
             mid2: Number(row.mid2 || 0),
-            assignment1: Number(row.assignment1 || 0),
-            assignment2: Number(row.assignment2 || 0),
+            assignment: Number(row.assignment || row.assignment1 || 0),
+            lab: Number(row.lab || row.assignment2 || 0),
           };
           const calc = calculateFinal(payload);
           const termCell = row.term != null && row.term !== "" ? String(row.term).trim() : "";
@@ -906,6 +965,7 @@ export async function uploadCsv(file, { atomic = false } = {}) {
             bestKey: calc.bestKey,
             atRisk: checkRisk(calc.final, (db.settings || {}).riskThreshold || 16, calc.internal1, calc.internal2),
             anomaly: checkAnomaly(payload),
+            releasedAt: new Date().toISOString(),
             createdAt: new Date().toISOString()
           });
           imported++;
@@ -939,9 +999,9 @@ export async function apiCsv() {
     ...m,
     student: (db.students || []).find(s => s._id === m.studentId)
   }));
-  const header = "studentName,subject,term,mid1,mid2,assignment1,assignment2,final,atRisk,anomaly";
+  const header = "studentName,subject,term,mid1,mid2,assignment,lab,final,atRisk,anomaly";
   const rows = marks.map(m =>
-    [m.student?.name || "", m.subject, m.term ?? "", m.mid1, m.mid2, m.assignment1, m.assignment2, m.final, m.atRisk, m.anomaly].join(",")
+    [m.student?.name || "", m.subject, m.term ?? "", m.mid1, m.mid2, m.assignment ?? m.assignment1 ?? 0, m.lab ?? m.assignment2 ?? 0, m.final, m.atRisk, m.anomaly].join(",")
   );
   return new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
 }

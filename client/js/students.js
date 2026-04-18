@@ -58,7 +58,7 @@ function renderHistory(report) {
                   <span class="badge ${Number(subj.final) < 16 ? "bad" : "good"}">${Number(subj.final) < 16 ? "Fail" : "Pass"}</span>
                 </div>
                 <div class="hint" style="margin-top:0.4rem;">
-                  Term ${esc(subj.term)} · I1 ${esc(subj.internal1)} · I2 ${esc(subj.internal2)} · Final ${esc(subj.final)}
+                  Term ${esc(subj.term)} Â· I1 ${esc(subj.internal1)} Â· I2 ${esc(subj.internal2)} Â· Final ${esc(subj.final)}
                 </div>
               </div>
             `).join("")}

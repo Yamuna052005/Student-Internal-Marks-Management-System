@@ -12,6 +12,23 @@ if (!user) window.location.href = "/index.html";
 initShell({ active: "settings" });
 
 const isStudent = user?.role === "student";
+const roleCopy = {
+  admin: {
+    kicker: "Admin Control",
+    title: "Settings",
+    description: "Manage grading policy, users, and approval requests.",
+  },
+  faculty: {
+    kicker: "Faculty Workspace",
+    title: "Settings",
+    description: "Review your profile, keep your teaching preferences current, and track faculty-related requests.",
+  },
+  student: {
+    kicker: "Student Settings",
+    title: "Settings",
+    description: "Update your profile and keep your account details current.",
+  },
+};
 
 let state = {
   settings: {},
@@ -31,16 +48,26 @@ function initialOf(name) {
   return String(name || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
+function applyHeaderCopy() {
+  const copy = roleCopy[user?.role] || roleCopy.student;
+  const kicker = qs("#settingsKicker");
+  const title = qs("#settingsTitle");
+  const description = qs("#settingsDescription");
+  if (kicker) kicker.textContent = copy.kicker;
+  if (title) title.textContent = copy.title;
+  if (description) description.textContent = copy.description;
+}
+
 async function boot() {
   try {
-    // Non-admin users only see their profile (activity + policy are admin-only)
+    applyHeaderCopy();
     if (user.role !== "admin") {
       state.settings = await api("/settings").catch(() => ({}));
-      renderProfile();
-      qs("#gradingSection")?.remove();
-      qs("#activitySection")?.remove();
-      qs("#approvalSection")?.remove();
-      qs("aside[data-role='admin']")?.remove();
+    renderProfile();
+    qs("#gradingSection")?.remove();
+    qs("#activitySection")?.remove();
+    qs("#approvalSection")?.remove();
+    qs("aside[data-role='admin']")?.remove();
       wireEvents();
       return;
     }
@@ -76,7 +103,6 @@ function renderProfile() {
   const roleBadgeClass = user.role === "admin" ? "admin" : user.role === "faculty" ? "warn" : "good";
   const roleLabel = user.role === "admin" ? "Administrator" : user.role === "faculty" ? "Faculty" : "Student";
 
-  // Student-specific fields from studentRef
   const sr = user.studentRef && typeof user.studentRef === "object" ? user.studentRef : null;
   const rollNumber = sr?.rollNumber || user.rollNumber || "—";
   const section = sr?.section || user.section || "—";
@@ -113,13 +139,12 @@ function renderProfile() {
 }
 
 function renderSettings() {
-  // Students never reach this — grading section is removed before call
   const riskT = qs("#riskT");
   const passM = qs("#passM");
   const defaultTerm = qs("#defaultTerm");
   const deadline = qs("#deadline");
   const saveSet = qs("#saveSet");
-  if (!riskT) return; // section removed from DOM
+  if (!riskT) return;
 
   if (user.role !== "admin") {
     riskT.disabled = true;
@@ -160,7 +185,7 @@ function renderUsers() {
   const tbody = qs("#usersBody");
   if (!tbody) return;
 
-  tbody.innerHTML = state.users.map(item => `
+  tbody.innerHTML = state.users.map((item) => `
     <tr data-id="${item._id}">
       <td>
         <div class="table-user">
@@ -174,7 +199,7 @@ function renderUsers() {
         </div>
       </td>
       <td><span class="code-pill">${esc(item.username)}</span></td>
-      <td><span class="badge ${item.role === 'admin' ? 'admin' : ''}">${esc(item.role)}</span></td>
+      <td><span class="badge ${item.role === "admin" ? "admin" : ""}">${esc(item.role)}</span></td>
       <td style="text-align: right;">
         <div class="table-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
           ${String(item._id) !== String(user._id || user.id)
@@ -186,11 +211,11 @@ function renderUsers() {
     </tr>
   `).join("");
 
-  qsa(".btn-del-user").forEach(button => {
+  qsa(".btn-del-user").forEach((button) => {
     button.onclick = () => deleteUser(button.dataset.id);
   });
 
-  qsa(".btn-edit-user").forEach(button => {
+  qsa(".btn-edit-user").forEach((button) => {
     button.onclick = () => openEditUser(button.dataset.id);
   });
 }
@@ -204,7 +229,7 @@ function renderActivity() {
     return;
   }
 
-  activityRoot.innerHTML = state.activity.map(entry => `
+  activityRoot.innerHTML = state.activity.map((entry) => `
     <div class="feed-row">
       <div class="feed-dot"></div>
       <div class="feed-main">
@@ -288,7 +313,7 @@ async function deleteUser(id) {
 
   try {
     await api(`/users/${id}`, { method: "DELETE" });
-    state.users = state.users.filter(item => item._id !== id);
+    state.users = state.users.filter((item) => item._id !== id);
     renderUsers();
     toast("good", "Success", "User account removed.");
   } catch {
@@ -297,7 +322,7 @@ async function deleteUser(id) {
 }
 
 function openEditUser(id) {
-  const target = state.users.find(item => String(item._id) === String(id));
+  const target = state.users.find((item) => String(item._id) === String(id));
   if (!target) return;
 
   refreshFacultyOptions();
@@ -364,16 +389,22 @@ function wireEvents() {
     if (role === "student") {
       payload.rollNumber = qs("#uRoll").value.trim();
       payload.section = qs("#uSection").value.trim();
+      payload.username = payload.rollNumber;
       const fid = qs("#uFaculty").value.trim();
       if (fid) payload.facultyId = fid;
     }
 
-    if (!payload.name || !payload.username) {
-      toast("warn", "Missing Data", "Name and username are required.");
+    if (!payload.name || (role !== "student" && !payload.username)) {
+      toast("warn", "Missing Data", role === "student" ? "Name and roll number are required." : "Name and username are required.");
       return;
     }
 
-    if (!editId && !payload.password) {
+    if (role === "student" && !payload.rollNumber) {
+      toast("warn", "Missing Data", "Roll number is required for students.");
+      return;
+    }
+
+    if (!editId && role !== "student" && !payload.password) {
       toast("warn", "Missing Data", "Password is required for new users.");
       return;
     }
@@ -404,7 +435,7 @@ function wireEvents() {
     }
   });
 
-  qsa("[data-close]").forEach(element => {
+  qsa("[data-close]").forEach((element) => {
     element.onclick = () => qs(".modal-backdrop.open")?.classList.remove("open");
   });
 }

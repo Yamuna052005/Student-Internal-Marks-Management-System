@@ -15,7 +15,7 @@ form?.addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.textContent = "Signing in…";
   try {
-    await login(u.value.trim(), p.value);
+    const user = await login(u.value.trim(), p.value);
     await refreshMe().catch(() => {});
     window.location.href = "/pages/dashboard.html";
   } catch (err) {
