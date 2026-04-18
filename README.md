@@ -196,7 +196,7 @@ Supports bulk marks upload with validation.
 - `GET|POST|PATCH|DELETE /api/users` — **admin**
 =======
 ## 🚧 Future Improvements
->>>>>>> 13630eec70727d8ae57d6c9a8ee781bec5234015
+
 
 * Cloud deployment
 * Advanced frontend (React migration)
@@ -212,7 +212,6 @@ Supports bulk marks upload with validation.
 - **Anomaly** if internal gap spike or large jump vs prior final (see `server/utils/calcMarks.js`).
 =======
 ---
->>>>>>> 13630eec70727d8ae57d6c9a8ee781bec5234015
 
 ## 📄 License
 
