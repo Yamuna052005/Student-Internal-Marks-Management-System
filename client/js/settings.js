@@ -37,6 +37,9 @@ let state = {
   approvals: [],
 };
 
+let facultyApproval = null;
+let facultyApprovals = [];
+
 function esc(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -58,16 +61,29 @@ function applyHeaderCopy() {
   if (description) description.textContent = copy.description;
 }
 
+async function loadFacultyApprovalData() {
+  const approvalData = await api("/marks-approvals").catch(() => ({ approvals: [] }));
+  facultyApprovals = approvalData.approvals || [];
+  facultyApproval = facultyApprovals[0] || null;
+}
+
 async function boot() {
   try {
     applyHeaderCopy();
     if (user.role !== "admin") {
       state.settings = await api("/settings").catch(() => ({}));
-    renderProfile();
-    qs("#gradingSection")?.remove();
-    qs("#activitySection")?.remove();
-    qs("#approvalSection")?.remove();
-    qs("aside[data-role='admin']")?.remove();
+      if (user.role === "faculty") {
+        await loadFacultyApprovalData();
+      } else {
+        facultyApproval = null;
+        facultyApprovals = [];
+      }
+      renderProfile();
+      renderFacultyApprovalPanel();
+      qs("#gradingSection")?.remove();
+      qs("#activitySection")?.remove();
+      qs("#approvalSection")?.remove();
+      qs("aside[data-role='admin']")?.remove();
       wireEvents();
       return;
     }
@@ -136,6 +152,164 @@ function renderProfile() {
     </div>
     ${studentMeta}
   `;
+}
+
+function approvalStatusLabel(status) {
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
+  return "Pending";
+}
+
+function approvalStatusTone(status) {
+  if (status === "approved") return "good";
+  if (status === "rejected") return "bad";
+  return "warn";
+}
+
+function renderFacultyApprovalHistory(historyEl) {
+  if (!historyEl) return;
+  if (!facultyApprovals.length) {
+    historyEl.innerHTML = `<div class="empty">No approval requests have been submitted yet.</div>`;
+    return;
+  }
+
+  historyEl.innerHTML = facultyApprovals
+    .map((item) => {
+      const tone = approvalStatusTone(item.status);
+      const label = approvalStatusLabel(item.status);
+      const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleString() : "—";
+      const reviewedAt = item.reviewedAt ? new Date(item.reviewedAt).toLocaleString() : "—";
+      const reviewedBy = item.reviewedBy?.name || item.reviewedBy?.username || "—";
+      const requestNote = item.requestNote ? esc(item.requestNote) : "";
+      const reviewNote = item.reviewNote ? esc(item.reviewNote) : "";
+      return `<article class="entity-row entity-row-wide" style="margin-bottom:0.75rem">
+        <div class="entity-main">
+          <div class="entity-title-row">
+            <strong>${label}</strong>
+            <span class="trend-chip ${tone}">${label}</span>
+          </div>
+          <span class="entity-subtitle">Submitted ${createdAt}${item.deadlineSnapshot ? ` · deadline ${new Date(item.deadlineSnapshot).toLocaleString()}` : ""}</span>
+          ${requestNote ? `<p class="hint" style="margin-top:0.35rem"><strong>Request:</strong> ${requestNote}</p>` : ""}
+          ${reviewNote ? `<p class="hint" style="margin-top:0.35rem"><strong>Admin note:</strong> ${reviewNote}</p>` : ""}
+        </div>
+        <div class="entity-side" style="min-width:220px;align-items:flex-end;">
+          <span class="hint" style="text-align:right">Reviewed by ${esc(reviewedBy)}</span>
+          <span class="hint" style="text-align:right">Reviewed ${reviewedAt}</span>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+function renderFacultyApprovalPanel() {
+  const section = qs("#facultyApprovalSection");
+  const message = qs("#facultyApprovalMessage");
+  const status = qs("#facultyApprovalStatus");
+  const meta = qs("#facultyApprovalMeta");
+  const button = qs("#facultyApprovalBtn");
+  const marksLink = qs("#facultyApprovalMarksLink");
+  const history = qs("#facultyApprovalHistory");
+  if (!section || !message || !status || !meta || !button || !marksLink) return;
+
+  if (user.role !== "faculty") {
+    section.remove();
+    return;
+  }
+
+  renderFacultyApprovalHistory(history);
+  meta.textContent = state.settings?.marksDeadline
+    ? `Current marks deadline: ${new Date(state.settings.marksDeadline).toLocaleString()}`
+    : "No deadline configured.";
+
+  const deadline = state.settings?.marksDeadline ? new Date(state.settings.marksDeadline) : null;
+  const pastDeadline = deadline && !Number.isNaN(deadline.getTime()) && Date.now() > deadline.getTime();
+
+  if (!deadline) {
+    message.textContent = "Admin has not set a marks deadline yet.";
+    status.textContent = "Open";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Deadline Not Set";
+    return;
+  }
+
+  if (!pastDeadline) {
+    message.textContent = "Marks entry is open. Approval is only needed after the deadline passes.";
+    status.textContent = "Open";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Available After Deadline";
+    return;
+  }
+
+  if (facultyApproval?.status === "approved") {
+    message.textContent = "Your post-deadline marks request is approved.";
+    status.textContent = "Approved";
+    status.className = "trend-chip good";
+    button.disabled = true;
+    button.textContent = "Approved";
+    return;
+  }
+
+  if (facultyApproval?.status === "pending") {
+    message.textContent = "Your request is waiting for admin review.";
+    status.textContent = "Pending";
+    status.className = "trend-chip warn";
+    button.disabled = true;
+    button.textContent = "Request Pending";
+    return;
+  }
+
+  message.textContent = "Deadline passed. Request admin approval to continue entering marks.";
+  status.textContent = "Required";
+  status.className = "trend-chip warn";
+  button.disabled = false;
+  button.textContent = "Send Request";
+}
+
+async function submitFacultyApprovalRequest() {
+  if (user.role !== "faculty") return;
+
+  const deadline = state.settings?.marksDeadline ? new Date(state.settings.marksDeadline) : null;
+  const pastDeadline = deadline && !Number.isNaN(deadline.getTime()) && Date.now() > deadline.getTime();
+  if (!pastDeadline) {
+    toast("warn", "Not available", "Approval requests are only available after the marks deadline passes.");
+    return;
+  }
+  if (facultyApproval?.status === "approved") {
+    toast("good", "Already approved", "Admin has already approved post-deadline marks entry.");
+    return;
+  }
+  if (facultyApproval?.status === "pending") {
+    toast("warn", "Already pending", "A request is already waiting for admin review.");
+    return;
+  }
+
+  const button = qs("#facultyApprovalBtn");
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Sending...";
+    }
+
+    const requestNote = window.prompt("Reason for admin approval:", "Need to enter marks after deadline.") || "";
+    const data = await api("/marks-approvals", {
+      method: "POST",
+      body: JSON.stringify({ requestNote }),
+    });
+
+    facultyApproval = data.approval || null;
+    facultyApprovals = facultyApproval
+      ? [facultyApproval, ...facultyApprovals.filter((item) => String(item._id) !== String(facultyApproval._id))]
+      : facultyApprovals;
+    renderFacultyApprovalPanel();
+    toast("good", "Requested", "Approval request sent to admin.");
+  } catch (e) {
+    toast("bad", "Request failed", e.message || "Unable to send approval request.");
+    await loadFacultyApprovalData().catch(() => {});
+  } finally {
+    renderFacultyApprovalPanel();
+  }
 }
 
 function renderSettings() {
@@ -342,6 +516,7 @@ function openEditUser(id) {
 }
 
 function wireEvents() {
+  qs("#facultyApprovalBtn")?.addEventListener("click", submitFacultyApprovalRequest);
   qs("#uRole")?.addEventListener("change", syncStudentFields);
 
   qs("#saveSet")?.addEventListener("click", async () => {

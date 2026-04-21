@@ -28,9 +28,13 @@ function normalizeGrievance(doc) {
 export async function listGrievances(req, res, next) {
   try {
     const filter = {};
+    let facultyGrievances = false;
     if (req.user.role === "student") {
       if (!req.user.studentRef) return res.json({ grievances: [] });
       filter.student = req.user.studentRef;
+    } else if (req.user.role === "faculty") {
+      facultyGrievances = true;
+      filter.$or = [{ assignedTo: req.user._id }, { assignedTo: null }];
     } else {
       if (req.query.studentId) filter.student = req.query.studentId;
       if (req.query.marksId) filter.marks = req.query.marksId;
@@ -39,14 +43,24 @@ export async function listGrievances(req, res, next) {
 
     const grievances = await Grievance.find(filter)
       .populate("student", "name rollNumber section")
-      .populate("marks", "subject term final releasedAt createdAt updatedAt student")
+      .populate("marks", "subject term final releasedAt createdAt updatedAt student updatedBy")
       .populate("submittedBy", "name username")
+      .populate("assignedTo", "name username role")
       .populate("reviewedBy", "name username")
       .sort({ createdAt: -1 })
       .lean();
 
+    const visibleGrievances = facultyGrievances
+      ? grievances.filter((grievance) => {
+          if (String(grievance.assignedTo?._id || grievance.assignedTo || "") === String(req.user._id)) {
+            return true;
+          }
+          return String(grievance.marks?.updatedBy?._id || grievance.marks?.updatedBy || "") === String(req.user._id);
+        })
+      : grievances;
+
     res.json({
-      grievances: grievances.map((g) => normalizeGrievance(g)),
+      grievances: visibleGrievances.map((g) => normalizeGrievance(g)),
     });
   } catch (e) {
     next(e);
@@ -71,7 +85,10 @@ export async function createGrievance(req, res, next) {
       return res.status(400).json({ message: "Justification must be at least 10 characters." });
     }
 
-    const mark = await Marks.findById(marksId).populate("student", "name rollNumber section").lean();
+    const mark = await Marks.findById(marksId)
+      .populate("student", "name rollNumber section")
+      .populate("updatedBy", "name username role")
+      .lean();
     if (!mark) return res.status(404).json({ message: "Marks not found" });
     if (!mark.student || String(mark.student._id) !== String(req.user.studentRef)) {
       return res.status(403).json({ message: "Not allowed" });
@@ -97,6 +114,7 @@ export async function createGrievance(req, res, next) {
     }
 
     const releaseDate = resolveMarkReleaseDate(mark);
+    const assignedTo = mark.updatedBy?._id || null;
     const grievance = await Grievance.create({
       student: req.user.studentRef,
       marks: mark._id,
@@ -108,6 +126,7 @@ export async function createGrievance(req, res, next) {
       supportingDetails,
       status: "pending",
       submittedBy: req.user._id,
+      assignedTo,
     });
 
     await logActivity({
@@ -121,6 +140,7 @@ export async function createGrievance(req, res, next) {
       .populate("student", "name rollNumber section")
       .populate("marks", "subject term final releasedAt createdAt updatedAt student")
       .populate("submittedBy", "name username")
+      .populate("assignedTo", "name username role")
       .populate("reviewedBy", "name username")
       .lean();
 
@@ -137,10 +157,14 @@ export async function createGrievance(req, res, next) {
 
 export async function updateGrievance(req, res, next) {
   try {
-    const grievance = await Grievance.findById(req.params.id);
+    const grievance = await Grievance.findById(req.params.id).populate("marks", "updatedBy");
     if (!grievance) return res.status(404).json({ message: "Grievance not found" });
 
     if (req.user.role === "student") {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+    const grievanceOwnerId = grievance.assignedTo?._id || grievance.assignedTo || grievance.marks?.updatedBy?._id || grievance.marks?.updatedBy;
+    if (req.user.role === "faculty" && String(grievanceOwnerId || "") !== String(req.user._id)) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
@@ -167,6 +191,7 @@ export async function updateGrievance(req, res, next) {
       .populate("student", "name rollNumber section")
       .populate("marks", "subject term final releasedAt createdAt updatedAt student")
       .populate("submittedBy", "name username")
+      .populate("assignedTo", "name username role")
       .populate("reviewedBy", "name username")
       .lean();
 

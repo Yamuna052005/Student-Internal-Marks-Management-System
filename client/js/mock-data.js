@@ -309,6 +309,7 @@ export function mockAcademicReport(db, studentId) {
       releasedAt: m.releasedAt,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
+      updatedBy: m.updatedBy || null,
     };
   });
   const years = groupMarksMock(enriched, defaultTerm);

@@ -35,6 +35,7 @@ function enrichMark(m, settings) {
     releasedAt: norm.releasedAt,
     createdAt: norm.createdAt,
     updatedAt: norm.updatedAt,
+    updatedBy: norm.updatedBy || null,
   };
 }
 

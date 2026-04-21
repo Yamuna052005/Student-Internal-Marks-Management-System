@@ -141,7 +141,6 @@ export async function updateUser(req, res, next) {
             st.createdBy = fac._id;
           }
           await st.save();
-          user.username = st.name.toLowerCase().replace(/\s+/g, "");
         }
       }
     }

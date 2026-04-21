@@ -13,7 +13,7 @@
   <!-- Navbar -->
   <nav class="landing-nav ui-reveal">
     <div class="landing-nav-logo">
-      <div style="font-weight: 800; font-family: 'Poppins'; font-size: 1.5rem; letter-spacing: -0.05em; color: white;">SIMMS</div>
+      <div style="font-weight: 800; font-family: 'Poppins'; font-size: 1.5rem; letter-spacing: -0.05em; color: white;">WSIMMS</div>
     </div>
     <div class="landing-nav-links">
       <a href="#features" class="nav-link-item">Features</a>
@@ -50,23 +50,61 @@
                <h3 style="margin-bottom: 2rem; font-size: 1.5rem; text-align: center;">Welcome back</h3>
                <form id="loginForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
                  <div>
-                   <label style="display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--text-dim); font-weight: 700;">Username</label>
-                   <input class="input" type="text" id="username" placeholder="Enter username" required />
-                   <p style="margin-top:0.5rem;color:var(--text-muted);font-size:0.8rem;">Students and staff use their username to sign in.</p>
+                   <label style="display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--text-dim); font-weight: 700;">Username / Roll Number</label>
+                   <input class="input" type="text" id="username" placeholder="Enter username or roll number" required />
                  </div>
                  <div>
                    <label style="display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--text-dim); font-weight: 700;">Password</label>
                    <input class="input" type="password" id="password" placeholder="••••••••" required />
                  </div>
                  <button type="submit" class="btn primary" style="width: 100%; margin-top: 1rem;">Enter Workspace</button>
-                 <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">Forgot credentials? <a href="#" style="color: var(--primary);">Contact Admin</a></p>
                </form>
+               <p style="margin-top:1rem;text-align:center;color:var(--text-muted);font-size:0.85rem;">
+                 Forgot credentials?
+                 <button type="button" id="openPasswordChange" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;cursor:pointer;">Change password</button>
+               </p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </header>
+
+  <div class="modal-backdrop" id="passwordChangeModal">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-h">
+        <h2>Change Password</h2>
+        <button type="button" class="btn small ghost" data-close-password>&times;</button>
+      </div>
+      <div class="modal-b">
+        <p class="hint" style="margin-bottom:1rem;">Enter your username or roll number, current password, and a new password.</p>
+        <form id="passwordChangeForm" style="display:grid;gap:1rem;">
+          <div class="grid cols-2">
+            <div class="field">
+              <label class="field-label">Username / Roll Number</label>
+              <input id="pcUsername" class="input" autocomplete="username" required />
+            </div>
+            <div class="field">
+              <label class="field-label">Current Password</label>
+              <input id="pcCurrent" class="input" type="password" autocomplete="current-password" required />
+            </div>
+            <div class="field">
+              <label class="field-label">New Password</label>
+              <input id="pcNew" class="input" type="password" autocomplete="new-password" required />
+            </div>
+            <div class="field">
+              <label class="field-label">Confirm New Password</label>
+              <input id="pcConfirm" class="input" type="password" autocomplete="new-password" required />
+            </div>
+          </div>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button type="submit" class="btn primary" id="pcSubmit">Update Password</button>
+            <button type="button" class="btn ghost" data-close-password>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- Features Section -->
   <section class="section" id="features">
@@ -158,11 +196,11 @@
       </div>
       <div class="features-grid">
          <div class="card ui-reveal" style="padding: 2rem;">
-            <p style="font-style: italic; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">"SIMMS has cut our end-of-semester processing time by nearly 40%. The risk signals are a game-changer for our remedial programs."</p>
+            <p style="font-style: italic; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">"WSIMMS has cut our end-of-semester processing time by nearly 40%. The risk signals are a game-changer for our remedial programs."</p>
             <div style="display: flex; align-items: center; gap: 1rem;">
                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
                <div>
-                  <div style="font-weight: 600;">Dr. Sarah Chen</div>
+                  <div style="font-weight: 600;">Prof V.Uma</div>
                   <div class="hint">Dean of Academics</div>
                </div>
             </div>
@@ -172,7 +210,7 @@
             <div style="display: flex; align-items: center; gap: 1rem;">
                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
                <div>
-                  <div style="font-weight: 600;">Marcus Thorne</div>
+                  <div style="font-weight: 600;">Prof V.Saritha</div>
                   <div class="hint">IT Academic Lead</div>
                </div>
             </div>
@@ -182,7 +220,7 @@
             <div style="display: flex; align-items: center; gap: 1rem;">
                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-bright);"></div>
                <div>
-                  <div style="font-weight: 600;">Ellen Zhang</div>
+                  <div style="font-weight: 600;">Prof R.Usha</div>
                   <div class="hint">Registrar</div>
                </div>
             </div>
@@ -207,7 +245,7 @@
     <div class="section-container">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; color: var(--text-muted); font-size: 0.9rem;">
         <div>
-          <div style="font-weight: 800; color: white; font-size: 1.25rem; margin-bottom: 1rem;">SIMMS</div>
+          <div style="font-weight: 800; color: white; font-size: 1.25rem; margin-bottom: 1rem;">WSIMMS</div>
           <p>© 2026 Intelligent Academic Systems.</p>
         </div>
         <div style="display: flex; gap: 4rem;">
@@ -230,5 +268,4 @@
 
   <script type="module" src="/js/login.js"></script>
 </body>
-
 </html>

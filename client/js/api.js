@@ -82,7 +82,15 @@ async function mockApi(path, options = {}) {
   // ── AUTH ──────────────────────────────────────────────────────────────────
   if (cleanPath === "/auth/login") {
     const { username, password } = JSON.parse(options.body);
-    const user = (db.users || []).find((u) => String(u.username || "").trim().toLowerCase() === String(username || "").trim().toLowerCase());
+    const loginId = String(username || "").trim();
+    const normalized = loginId.toLowerCase();
+    let user = (db.users || []).find((u) => String(u.username || "").trim().toLowerCase() === normalized);
+    if (!user) {
+      const student = (db.students || []).find((s) => String(s.rollNumber || "").trim().toLowerCase() === normalized);
+      if (student) {
+        user = (db.users || []).find((u) => u.role === "student" && u.studentRef === student._id);
+      }
+    }
     if (!user) throw new Error("Invalid credentials");
     const validPass = user.password || `${username}123`;
     if (password === validPass) {
@@ -97,6 +105,34 @@ async function mockApi(path, options = {}) {
     // Return fresh copy from db
     const dbUser = (db.users || []).find(u => u._id === currentUser._id) || currentUser;
     return { user: enrichUserRow(dbUser) };
+  }
+
+  if (cleanPath === "/auth/password" && String(options.method || "POST").toUpperCase() === "POST") {
+    const payload = JSON.parse(options.body || "{}");
+    const loginId = String(payload.username || "").trim();
+    const normalized = loginId.toLowerCase();
+    if (!loginId || !payload.currentPassword || !payload.newPassword) {
+      throw new Error("Username, current password, and new password are required");
+    }
+    let idx = (db.users || []).findIndex((u) => String(u.username || "").trim().toLowerCase() === normalized);
+    if (idx < 0) {
+      const student = (db.students || []).find((s) => String(s.rollNumber || "").trim().toLowerCase() === normalized);
+      if (student) {
+        idx = (db.users || []).findIndex((u) => u.role === "student" && u.studentRef === student._id);
+      }
+    }
+    if (idx < 0) throw new Error("Invalid credentials");
+    const user = db.users[idx];
+    const validPass = user.password || `${user.username}123`;
+    if (String(payload.currentPassword || "") !== String(validPass)) {
+      throw new Error("Current password is incorrect");
+    }
+    if (String(payload.newPassword || "").trim().length < 6) {
+      throw new Error("New password must be at least 6 characters long");
+    }
+    db.users[idx] = { ...user, password: String(payload.newPassword) };
+    saveDb(db);
+    return { ok: true, user: enrichUserRow(db.users[idx]) };
   }
 
   // ── SETTINGS ──────────────────────────────────────────────────────────────
@@ -872,7 +908,7 @@ export async function api(path, options = {}) {
   if (res.status === 401 && !String(path).includes("/auth/login")) {
     setToken(null);
     setUser(null);
-    window.location.href = "/index.html";
+    window.location.replace("/");
   }
   if (!res.ok) {
     const msg = await readErrorBody(res);
@@ -896,7 +932,7 @@ export async function uploadCsv(file, { atomic = false } = {}) {
     if (res.status === 401) {
       setToken(null);
       setUser(null);
-      window.location.href = "/index.html";
+      window.location.replace("/");
     }
     if (!res.ok) throw new Error(await readErrorBody(res));
     return res.json();

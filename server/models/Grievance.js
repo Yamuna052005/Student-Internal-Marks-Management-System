@@ -20,6 +20,7 @@ const grievanceSchema = new mongoose.Schema(
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     reviewedAt: { type: Date, default: null },
     resolutionNote: { type: String, default: "", trim: true, maxlength: 2000 },
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
   },
   { timestamps: true }
 );
@@ -34,5 +35,6 @@ grievanceSchema.index(
 grievanceSchema.index({ student: 1, createdAt: -1 });
 grievanceSchema.index({ marks: 1, createdAt: -1 });
 grievanceSchema.index({ status: 1, updatedAt: -1 });
+grievanceSchema.index({ assignedTo: 1, status: 1, updatedAt: -1 });
 
 export const Grievance = mongoose.model("Grievance", grievanceSchema);

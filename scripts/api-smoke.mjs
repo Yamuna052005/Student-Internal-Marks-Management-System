@@ -9,6 +9,7 @@ const SMOKE_FACULTY_USER = process.env.SIMMS_SMOKE_FACULTY_USER || "faculty";
 const SMOKE_FACULTY_PASS = process.env.SIMMS_SMOKE_FACULTY_PASS || "faculty123";
 const SMOKE_STUDENT_USER = process.env.SIMMS_SMOKE_STUDENT_USER || "student";
 const SMOKE_STUDENT_PASS = process.env.SIMMS_SMOKE_STUDENT_PASS || "student123";
+const OPEN_DEADLINE = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
 let passed = 0;
 let failed = 0;
@@ -132,6 +133,22 @@ async function main() {
 
   const facultyT = await login(SMOKE_FACULTY_USER, SMOKE_FACULTY_PASS);
   const studentT = await login(SMOKE_STUDENT_USER, SMOKE_STUDENT_PASS);
+
+  // Keep the workspace testable regardless of the persisted deadline state.
+  let originalDeadline = null;
+  {
+    const { data: s } = await req("/api/settings", { headers: authHeader(adminT) });
+    originalDeadline = s?.marksDeadline ?? null;
+  }
+  {
+    const { status } = await req("/api/settings", {
+      method: "PATCH",
+      headers: authHeader(adminT),
+      json: { marksDeadline: OPEN_DEADLINE },
+    });
+    if (status === 200) ok("admin PATCH settings (open test window) -> 200");
+    else fail("admin PATCH open window", `${status}`);
+  }
 
   // Role: student cannot list students
   {
@@ -416,11 +433,6 @@ async function main() {
   }
 
   // Marks deadline lock (faculty blocked, admin not)
-  let savedDeadline = null;
-  {
-    const { data: s } = await req("/api/settings", { headers: authHeader(adminT) });
-    savedDeadline = s?.marksDeadline ?? null;
-  }
   {
     const { status } = await req("/api/settings", {
       method: "PATCH",
@@ -474,7 +486,7 @@ async function main() {
     await req("/api/settings", {
       method: "PATCH",
       headers: authHeader(adminT),
-      json: { marksDeadline: savedDeadline },
+      json: { marksDeadline: OPEN_DEADLINE },
     });
     ok("restored marksDeadline");
   }
@@ -521,6 +533,15 @@ async function main() {
     const d = await req(`/api/students/${peerStudentId}`, { method: "DELETE", headers: authHeader(facultyT) });
     if (d.status === 200) ok("cleanup peer student");
     else fail("cleanup peer student", `${d.status}`);
+  }
+
+  {
+    await req("/api/settings", {
+      method: "PATCH",
+      headers: authHeader(adminT),
+      json: { marksDeadline: originalDeadline },
+    });
+    ok("restored original marksDeadline");
   }
 
   console.log(`\nDone: ${passed} passed, ${failed} failed`);

@@ -31,6 +31,10 @@ async function enrichMarks(doc) {
   return populated;
 }
 
+function isValidObjectId(id) {
+  return typeof id === "string" && id.trim() !== "" && /^[a-f\d]{24}$/i.test(id.trim());
+}
+
 function applyRiskAndAnomaly(computed, priorFinal, threshold) {
   const atRisk = computeCombinedAtRisk(computed.final, threshold, computed.internal1, computed.internal2);
   const internalSpike = detectInternalAnomaly(computed.internal1, computed.internal2);
@@ -120,6 +124,9 @@ export async function listMarks(req, res, next) {
 
 export async function getMark(req, res, next) {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid mark id" });
+    }
     const doc = await Marks.findById(req.params.id)
       .populate("student", "name rollNumber section createdBy")
       .populate("updatedBy", "name username")
@@ -263,6 +270,9 @@ export async function bulkCreateMarks(req, res, next) {
 export async function updateMark(req, res, next) {
   try {
     const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid mark id" });
+    }
     const doc = await Marks.findById(id);
     if (!doc) return res.status(404).json({ message: "Not found" });
 
@@ -315,6 +325,9 @@ export async function updateMark(req, res, next) {
 
 export async function deleteMark(req, res, next) {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid mark id" });
+    }
     const doc = await Marks.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: "Not found" });
     await Marks.findByIdAndDelete(req.params.id);

@@ -42,12 +42,12 @@ export async function login(username, password) {
 export function logout() {
   setToken(null);
   setUser(null);
-  window.location.href = "/index.html";
+  window.location.replace("/");
 }
 
 export function requireAuth() {
   if (!getToken()) {
-    window.location.href = "/index.html";
+    window.location.replace("/");
     return false;
   }
   return true;

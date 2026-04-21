@@ -4,6 +4,8 @@ import { initShell, toast } from "./app.js";
 
 if (!requireAuth()) throw new Error("auth");
 
+document.documentElement.classList.add("auth-loading");
+
 try {
   await refreshMe();
 } catch {
@@ -11,6 +13,7 @@ try {
 }
 
 initShell({ active: "dashboard" });
+document.documentElement.classList.remove("auth-loading");
 
 const user = getUser();
 const isAdmin = user?.role === "admin";
@@ -22,6 +25,7 @@ const FINAL_FAIL_TH = 16;
 
 let dashboardSettings = {};
 let dashboardApproval = null;
+let dashboardApprovals = [];
 let studentReport = null;
 let summary = {
   total: 0,
@@ -44,6 +48,7 @@ let grievanceFilters = {
   status: "all",
   search: "",
 };
+let grievanceRefreshTimer = null;
 
 function esc(s) {
   return String(s ?? "")
@@ -135,10 +140,66 @@ function isStudentGrievanceOpen(mark) {
   return !!deadline && Date.now() <= deadline.getTime();
 }
 
+function userDisplayName(userLike) {
+  if (typeof userLike === "string") return userLike;
+  return userLike?.name || userLike?.username || "";
+}
+
+function assignedFacultyForMark(mark, grievance = null) {
+  return userDisplayName(grievance?.assignedTo || mark?.updatedBy || grievance?.marks?.updatedBy);
+}
+
 function formatDateTime(dateLike) {
   if (!dateLike) return "—";
   const d = new Date(dateLike);
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
+function approvalStatusLabel(status) {
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
+  return "Pending";
+}
+
+function approvalStatusTone(status) {
+  if (status === "approved") return "good";
+  if (status === "rejected") return "bad";
+  return "warn";
+}
+
+function renderFacultyApprovalHistory(historyEl) {
+  if (!historyEl) return;
+  if (!dashboardApprovals.length) {
+    historyEl.innerHTML = `<div class="empty">No approval requests have been submitted yet.</div>`;
+    return;
+  }
+
+  historyEl.innerHTML = dashboardApprovals
+    .map((item) => {
+      const tone = approvalStatusTone(item.status);
+      const label = approvalStatusLabel(item.status);
+      const createdAt = formatDateTime(item.createdAt);
+      const reviewedAt = item.reviewedAt ? formatDateTime(item.reviewedAt) : "—";
+      const reviewedBy = item.reviewedBy?.name || item.reviewedBy?.username || "—";
+      const requestNote = item.requestNote ? esc(item.requestNote) : "";
+      const reviewNote = item.reviewNote ? esc(item.reviewNote) : "";
+      return `<article class="entity-row entity-row-wide" style="margin-bottom:0.75rem">
+        <div class="entity-main">
+          <div class="entity-title-row">
+            <strong>${label}</strong>
+            <span class="trend-chip ${tone}">${label}</span>
+          </div>
+          <span class="entity-subtitle">Submitted ${createdAt}${item.deadlineSnapshot ? ` · deadline ${formatDateTime(item.deadlineSnapshot)}` : ""}</span>
+          ${requestNote ? `<p class="hint" style="margin-top:0.35rem"><strong>Request:</strong> ${requestNote}</p>` : ""}
+          ${reviewNote ? `<p class="hint" style="margin-top:0.35rem"><strong>Admin note:</strong> ${reviewNote}</p>` : ""}
+        </div>
+        <div class="entity-side" style="min-width:220px;align-items:flex-end;">
+          <span class="hint" style="text-align:right">Reviewed by ${esc(reviewedBy)}</span>
+          <span class="hint" style="text-align:right">Reviewed ${reviewedAt}</span>
+        </div>
+      </article>`;
+    })
+    .join("");
 }
 
 function markGrievanceLabel(mark) {
@@ -449,6 +510,7 @@ function renderStudentGrievanceForm() {
   const select = document.getElementById("grievanceMarkSelect");
   const deadlineHint = document.getElementById("grievanceDeadlineHint");
   const alertBox = document.getElementById("studentGrievanceAlert");
+  const facultyHint = document.getElementById("grievanceAssignedFaculty");
   if (!select || !deadlineHint || !alertBox) return;
 
   const studentMarks = (marks || []).slice().sort((a, b) => String(a.subject || "").localeCompare(String(b.subject || ""), undefined, { sensitivity: "base" }));
@@ -465,6 +527,7 @@ function renderStudentGrievanceForm() {
     select.disabled = true;
     deadlineHint.textContent = "No mark entries are available for grievance submission.";
     alertBox.textContent = "Your complaint form will appear here once marks are available.";
+    if (facultyHint) facultyHint.textContent = "Assigned faculty: â€”";
     return;
   }
 
@@ -482,6 +545,10 @@ function renderStudentGrievanceForm() {
   const deadline = resolveGrievanceDeadline(current);
   const grievance = grievanceForMark(current._id);
   const openGrievance = isOpenGrievance(grievance);
+  const facultyName = assignedFacultyForMark(current, grievance);
+  if (facultyHint) {
+    facultyHint.textContent = facultyName ? `Assigned faculty: ${facultyName}` : "Assigned faculty: not available yet";
+  }
   deadlineHint.textContent = deadline
     ? `Window closes ${deadline.toLocaleString()}`
     : "This mark does not have a valid release date yet.";
@@ -506,6 +573,9 @@ function renderStudentGrievanceHistory() {
     .map((grievance) => {
       const mark = grievance.marks || {};
       const tone = grievanceStatusTone(grievance.status);
+      const reviewer = grievance.reviewedBy?.name || grievance.reviewedBy?.username || "";
+      const reviewedAt = grievance.reviewedAt ? formatDateTime(grievance.reviewedAt) : "";
+      const assignedFaculty = assignedFacultyForMark(mark, grievance);
       return `<div class="entity-row entity-row-wide">
         <div class="entity-main">
           <div class="entity-title-row">
@@ -513,9 +583,11 @@ function renderStudentGrievanceHistory() {
             <span class="trend-chip ${tone}">${esc(grievanceStatusLabel(grievance.status))}</span>
           </div>
           <span class="entity-subtitle">${esc(mark.term || grievance.term || "")} · submitted ${esc(formatDateTime(grievance.createdAt))}</span>
+          ${assignedFaculty ? `<p class="hint" style="margin-top:0.35rem">Assigned faculty: ${esc(assignedFaculty)}</p>` : ""}
           <p class="hint" style="margin-top:0.35rem">${esc(grievance.justification || "")}</p>
           ${grievance.supportingDetails ? `<p class="hint" style="margin-top:0.35rem">Supporting: ${esc(grievance.supportingDetails)}</p>` : ""}
           ${grievance.resolutionNote ? `<p class="hint" style="margin-top:0.35rem">Resolution: ${esc(grievance.resolutionNote)}</p>` : ""}
+          ${reviewer || reviewedAt ? `<p class="hint" style="margin-top:0.35rem">Reviewed ${esc(reviewedAt || "—")}${reviewer ? ` by ${esc(reviewer)}` : ""}</p>` : ""}
         </div>
         <div class="entity-side">
           <span class="metric-value">${esc(String(grievance.deadlineExpired ? "Closed" : "Open"))}</span>
@@ -654,7 +726,7 @@ async function updateGrievanceStatus(id, status) {
       body: JSON.stringify({ status, resolutionNote }),
     });
     toast("good", "Updated", `Grievance marked as ${status.replace("_", " ")}.`);
-    await refreshStaffGrievances();
+    await refreshGrievances();
   } catch (e) {
     toast("bad", "Update failed", e.message || "Unable to update grievance.");
   }
@@ -729,6 +801,14 @@ async function refreshStaffGrievances() {
   const data = await api("/grievances").catch(() => ({ grievances: [] }));
   grievances = data.grievances || [];
   renderDashboardLists();
+}
+
+async function refreshGrievances() {
+  if (isStudent) {
+    await refreshStudentGrievances();
+    return;
+  }
+  await refreshStaffGrievances();
 }
 
 function renderRiskLists() {
@@ -822,12 +902,15 @@ function renderFacultyApprovalPanel() {
   const meta = document.getElementById("facultyApprovalMeta");
   const button = document.getElementById("facultyApprovalBtn");
   const marksLink = document.getElementById("facultyApprovalMarksLink");
+  const history = document.getElementById("facultyApprovalHistory");
   if (!section || !message || !status || !meta || !button || !marksLink) return;
 
   if (!isFaculty) {
     section.remove();
     return;
   }
+
+  renderFacultyApprovalHistory(history);
 
   meta.textContent = dashboardSettings?.marksDeadline
     ? `Current marks deadline: ${new Date(dashboardSettings.marksDeadline).toLocaleString()}`
@@ -877,6 +960,51 @@ function renderFacultyApprovalPanel() {
   status.className = "trend-chip warn";
   button.disabled = false;
   button.textContent = "Send Request";
+}
+
+async function submitFacultyApprovalRequest() {
+  if (!isFaculty) return;
+
+  const deadline = dashboardSettings?.marksDeadline ? new Date(dashboardSettings.marksDeadline) : null;
+  const pastDeadline = deadline && !Number.isNaN(deadline.getTime()) && Date.now() > deadline.getTime();
+  if (!pastDeadline) {
+    toast("warn", "Not available", "Approval requests are only available after the marks deadline passes.");
+    return;
+  }
+  if (dashboardApproval?.status === "approved") {
+    toast("good", "Already approved", "Admin has already approved post-deadline marks entry.");
+    return;
+  }
+  if (dashboardApproval?.status === "pending") {
+    toast("warn", "Already pending", "A request is already waiting for admin review.");
+    return;
+  }
+
+  const button = document.getElementById("facultyApprovalBtn");
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Sending...";
+    }
+
+    const requestNote = window.prompt("Reason for admin approval:", "Need to enter marks after deadline.") || "";
+    const data = await api("/marks-approvals", {
+      method: "POST",
+      body: JSON.stringify({ requestNote }),
+    });
+
+    dashboardApproval = data.approval || null;
+    dashboardApprovals = dashboardApproval
+      ? [dashboardApproval, ...dashboardApprovals.filter((item) => String(item._id) !== String(dashboardApproval._id))]
+      : dashboardApprovals;
+    renderFacultyApprovalPanel();
+    toast("good", "Requested", "Approval request sent to admin.");
+  } catch (e) {
+    toast("bad", "Request failed", e.message || "Unable to send approval request.");
+    await loadDashboardData().catch(() => {});
+  } finally {
+    renderFacultyApprovalPanel();
+  }
 }
 
 function renderDashboardLists() {
@@ -951,9 +1079,11 @@ async function loadDashboardData() {
   activity = activityData?.activity || [];
   if (isFaculty) {
     const approvalData = await api("/marks-approvals").catch(() => ({ approvals: [] }));
-    dashboardApproval = (approvalData.approvals || [])[0] || null;
+    dashboardApprovals = approvalData.approvals || [];
+    dashboardApproval = dashboardApprovals[0] || null;
   } else {
     dashboardApproval = null;
+    dashboardApprovals = [];
   }
 
   if (isStudent && studentReport) {
@@ -980,6 +1110,12 @@ async function loadDashboardData() {
     document.getElementById("staffGrievanceSection")?.remove();
     document.getElementById("kpiRiskCard")?.remove();
     document.getElementById("kpiAnomCard")?.remove();
+  }
+
+  if (!grievanceRefreshTimer && (isStudent || isFaculty || isAdmin)) {
+    grievanceRefreshTimer = window.setInterval(() => {
+      refreshGrievances().catch(() => {});
+    }, 30000);
   }
 }
 
@@ -1031,6 +1167,7 @@ function initStaffGrievanceInteractions() {
 
 initStudentGrievanceInteractions();
 initStaffGrievanceInteractions();
+document.getElementById("facultyApprovalBtn")?.addEventListener("click", submitFacultyApprovalRequest);
 
 loadDashboardData().catch((err) => {
   console.error(err);

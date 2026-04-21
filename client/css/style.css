@@ -1006,6 +1006,14 @@ select.input:not([multiple]) {
   transition: none;
 }
 
+:root.auth-loading .app-shell {
+  opacity: 0;
+}
+
+:root.auth-loading {
+  background: var(--bg-app);
+}
+
 .academic-tree { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* Student dashboard: exact flow Year → Semester → Subjects → Marks */
